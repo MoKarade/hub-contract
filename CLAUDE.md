@@ -22,7 +22,9 @@ TypeScript, deux helpers (`validateSummary`, `buildingSummary`), tests, docs.
 2. **Changement additif optionnel = tag mineur.** Un nouveau champ `.optional()`
    (ou un nouvel élément d'enum accepté en plus) ne casse aucun consommateur :
    pas de bump de `CONTRACT_VERSION`, version mineure dans `package.json`
-   (ex: `1.1.0`), tag `v1.1.0`.
+   (ex: `1.1.0`), tag `v1.1.0`. Ça fonctionne parce que les schémas strippent
+   les clés inconnues au parse (comportement Zod par défaut, verrouillé par un
+   test) : un consommateur non re-pinné ignore simplement le nouveau champ.
 3. **Après tout changement, rappeler dans HANDOVER.md quels consommateurs
    re-pinner** :
    - FinanceAI (`mcp/`)

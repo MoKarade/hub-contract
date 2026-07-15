@@ -109,8 +109,8 @@ summary v2.
 | `app.name` | `string` | 1 à 30 caractères. |
 | `app.url` | `string` | URL absolue de l'app. |
 | `app.color` | `string` | Couleur d'accent du widget, hex 6 digits (`#0f766e`). |
-| `generatedAt` | `string` | Datetime ISO 8601 — quand ce JSON a été généré. |
-| `dataAsOf` | `string?` | Optionnel — fraîcheur des données sous-jacentes si différente de `generatedAt` (ex: dernière synchro). |
+| `generatedAt` | `string` | Datetime ISO 8601 **UTC** (suffixe `Z` obligatoire) — quand ce JSON a été généré. |
+| `dataAsOf` | `string?` | Optionnel — fraîcheur des données sous-jacentes si différente de `generatedAt` (ex: dernière synchro). Même format UTC. |
 | `status` | enum | `ok` \| `degraded` \| `error` \| `building` (`building` = app en dev, moteur pas actif). |
 | `metrics` | array | Max **6** `HubMetric`. |
 | `alerts` | array | Max **10** `HubAlert`. |
@@ -132,7 +132,7 @@ summary v2.
 |---|---|---|
 | `label` | `string` | 1 à 80 caractères. |
 | `severity` | enum | `info` \| `warn` \| `alert`. |
-| `href` | `string?` | Deep link vers l'écran concerné dans l'app. |
+| `href` | `string?` | URL absolue — deep link vers l'écran concerné dans l'app (un chemin relatif est rejeté). |
 
 ### `HubAction`
 
@@ -140,8 +140,26 @@ summary v2.
 |---|---|---|
 | `label` | `string` | 1 à 40 caractères. |
 | `kind` | enum | `link` = deep link (v1). `trigger` = webhook POST — **réservé v2, ne pas implémenter côté apps**. |
-| `href` | `string` | URL cible. |
+| `href` | `string` | URL cible absolue (un chemin relatif est rejeté). |
 | `confirm` | `string?` | Si présent, le hub demande confirmation avant d'exécuter. |
+
+### Précisions de validation
+
+- **Datetimes en UTC uniquement.** `generatedAt` et `dataAsOf` exigent le
+  suffixe `Z` : le `z.string().datetime()` de Zod 3 refuse les offsets
+  (`+02:00`) et les datetimes sans timezone. Côté app, envoyer simplement
+  `new Date().toISOString()`.
+- **Clés inconnues strippées, pas rejetées.** Un champ absent du contrat est
+  silencieusement retiré au parse. C'est le mécanisme qui rend l'évolution
+  additive possible : un hub resté pinné en v1.0 tolère un summary produit
+  par une app passée en v1.1 — le nouveau champ optionnel est ignoré.
+  Comportement verrouillé par un test.
+- **Schéma d'URL non restreint (v1).** `z.string().url()` accepte tout schéma
+  (`https:`, mais aussi `javascript:`, `data:`, ...). Les apps sont de
+  confiance, mais le hub doit quand même traiter `app.url` et les `href`
+  comme des données : au rendu, n'autoriser que `http(s)` avant d'en faire
+  des liens cliquables. Restreindre le schéma dans le contrat lui-même serait
+  un breaking change (v2).
 
 ## Règles d'auth
 
@@ -152,7 +170,8 @@ summary v2.
 - Le token vit dans une variable d'environnement de chaque côté — jamais dans
   le code ni dans ce repo.
 - Réponse toujours servie avec **`Cache-Control: no-store`** : un summary est
-  un instantané, il ne doit être caché ni par un CDN ni par le navigateur.
+  un instantané, il ne doit être mis en cache ni par un CDN ni par le
+  navigateur.
 
 ## CORS : rien à faire côté apps
 

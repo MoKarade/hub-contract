@@ -5,7 +5,7 @@
 - Contrat v1 complet dans `src/index.ts` : `CONTRACT_VERSION = 1`,
   `HUB_TOKEN_HEADER = "x-hub-token"`, schémas `HubMetric` / `HubAlert` /
   `HubAction` / `HubSummary`, helpers `validateSummary` et `buildingSummary`.
-- `npm run build`, `npm run test` (17 tests) et `npm run typecheck` passent.
+- `npm run build`, `npm run test` (34 tests) et `npm run typecheck` passent.
 - Installabilité vérifiée depuis une install git (`prepare` → build → seul
   `dist/` livré) en CommonJS, ESM et projet Vite.
 - Docs : `README.md` (contrat commenté, auth, CORS), `CLAUDE.md` (règles
