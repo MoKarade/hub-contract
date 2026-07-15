@@ -72,22 +72,30 @@ export type HubAlert = z.infer<typeof HubAlertSchema>;
 export type HubAction = z.infer<typeof HubActionSchema>;
 export type HubSummary = z.infer<typeof HubSummarySchema>;
 
+function formatIssue(issue: z.ZodIssue): string {
+  const path = issue.path.length > 0 ? issue.path.join(".") : "(racine)";
+  if (issue.code === z.ZodIssueCode.invalid_union) {
+    const branches = issue.unionErrors
+      .flatMap((unionError) => unionError.issues)
+      .map((subIssue) => subIssue.message)
+      .join(" / ");
+    return `${path}: ${issue.message} (${branches})`;
+  }
+  return `${path}: ${issue.message}`;
+}
+
 /**
  * Valide un payload inconnu contre le contrat.
  * Retourne le summary typé, ou jette une Error listant chaque issue Zod
- * (chemin + message) pour un diagnostic immédiat côté hub.
+ * (chemin + message, branches d'union détaillées) pour un diagnostic
+ * immédiat côté hub.
  */
 export function validateSummary(data: unknown): HubSummary {
   const result = HubSummarySchema.safeParse(data);
   if (result.success) {
     return result.data;
   }
-  const issues = result.error.issues
-    .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join(".") : "(racine)";
-      return `${path}: ${issue.message}`;
-    })
-    .join(" | ");
+  const issues = result.error.issues.map(formatIssue).join(" | ");
   throw new Error(
     `HubSummary invalide (${result.error.issues.length} issue${result.error.issues.length > 1 ? "s" : ""}) — ${issues}`,
   );
