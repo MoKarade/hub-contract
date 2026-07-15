@@ -69,6 +69,27 @@ describe("validateSummary — cas valide", () => {
     summary.actions = [];
     expect(() => validateSummary(summary)).not.toThrow();
   });
+
+  it("accepte les bornes exactes : 6 metrics, 10 alerts, 6 actions", () => {
+    const summary: HubSummary = {
+      ...makeValidSummary(),
+      metrics: Array.from({ length: 6 }, (_, i) => ({
+        label: `Métrique ${i + 1}`,
+        value: i,
+        format: "number" as const,
+      })),
+      alerts: Array.from({ length: 10 }, (_, i) => ({
+        label: `Alerte ${i + 1}`,
+        severity: "info" as const,
+      })),
+      actions: Array.from({ length: 6 }, (_, i) => ({
+        label: `Action ${i + 1}`,
+        kind: "link" as const,
+        href: `https://finance.hubperso.com/a/${i + 1}`,
+      })),
+    };
+    expect(() => validateSummary(summary)).not.toThrow();
+  });
 });
 
 describe("validateSummary — violations clés", () => {
@@ -91,6 +112,19 @@ describe("validateSummary — violations clés", () => {
     for (const generatedAt of ["hier", "2026-07-15", "15/07/2026 12:00"]) {
       const summary = { ...makeValidSummary(), generatedAt };
       expect(() => validateSummary(summary)).toThrow(/generatedAt/);
+    }
+  });
+
+  it("exige un datetime UTC : les offsets timezone sont refusés", () => {
+    for (const generatedAt of [
+      "2026-07-15T12:00:00+02:00",
+      "2026-07-15T12:00:00-05:00",
+      "2026-07-15T12:00:00",
+    ]) {
+      const summary = { ...makeValidSummary(), generatedAt };
+      expect(() => validateSummary(summary), generatedAt).toThrow(
+        /generatedAt/,
+      );
     }
   });
 
@@ -152,6 +186,151 @@ describe("validateSummary — violations clés", () => {
     for (const data of [null, undefined, 42, "json", []]) {
       expect(() => validateSummary(data)).toThrow(/HubSummary invalide/);
     }
+  });
+
+  it.each<[string, () => unknown, RegExp]>([
+    [
+      "app.url pas une URL",
+      () => {
+        const s = makeValidSummary();
+        return { ...s, app: { ...s.app, url: "pas-une-url" } };
+      },
+      /app\.url/,
+    ],
+    [
+      "app.name trop long (31 caractères)",
+      () => {
+        const s = makeValidSummary();
+        return { ...s, app: { ...s.app, name: "x".repeat(31) } };
+      },
+      /app\.name/,
+    ],
+    [
+      "label de metric vide",
+      () => ({
+        ...makeValidSummary(),
+        metrics: [{ label: "", value: 1, format: "number" }],
+      }),
+      /metrics\.0\.label/,
+    ],
+    [
+      "label de metric trop long (41 caractères)",
+      () => ({
+        ...makeValidSummary(),
+        metrics: [{ label: "x".repeat(41), value: 1, format: "number" }],
+      }),
+      /metrics\.0\.label/,
+    ],
+    [
+      "label d'alerte trop long (81 caractères)",
+      () => ({
+        ...makeValidSummary(),
+        alerts: [{ label: "x".repeat(81), severity: "info" }],
+      }),
+      /alerts\.0\.label/,
+    ],
+    [
+      "label d'action trop long (41 caractères)",
+      () => ({
+        ...makeValidSummary(),
+        actions: [
+          {
+            label: "x".repeat(41),
+            kind: "link",
+            href: "https://finance.hubperso.com",
+          },
+        ],
+      }),
+      /actions\.0\.label/,
+    ],
+    [
+      "status hors enum",
+      () => ({ ...makeValidSummary(), status: "unknown" }),
+      /status/,
+    ],
+    [
+      "format de metric hors enum",
+      () => ({
+        ...makeValidSummary(),
+        metrics: [{ label: "M", value: 1, format: "emoji" }],
+      }),
+      /metrics\.0\.format/,
+    ],
+    [
+      "severity de metric hors enum (info est réservé aux alertes)",
+      () => ({
+        ...makeValidSummary(),
+        metrics: [{ label: "M", value: 1, format: "number", severity: "info" }],
+      }),
+      /metrics\.0\.severity/,
+    ],
+    [
+      "severity d'alerte hors enum (ok est réservé aux metrics)",
+      () => ({
+        ...makeValidSummary(),
+        alerts: [{ label: "A", severity: "ok" }],
+      }),
+      /alerts\.0\.severity/,
+    ],
+    [
+      "href d'alerte non-URL",
+      () => ({
+        ...makeValidSummary(),
+        alerts: [{ label: "A", severity: "info", href: "/relatif" }],
+      }),
+      /alerts\.0\.href/,
+    ],
+    [
+      "kind d'action hors enum",
+      () => ({
+        ...makeValidSummary(),
+        actions: [
+          { label: "A", kind: "open", href: "https://finance.hubperso.com" },
+        ],
+      }),
+      /actions\.0\.kind/,
+    ],
+    [
+      "dataAsOf invalide",
+      () => ({ ...makeValidSummary(), dataAsOf: "hier" }),
+      /dataAsOf/,
+    ],
+  ])("rejette : %s", (_name, make, pattern) => {
+    expect(() => validateSummary(make())).toThrow(pattern);
+  });
+
+  it("détaille les branches d'union pour metric.value invalide", () => {
+    const summary = makeValidSummary();
+    summary.metrics = [
+      { label: "Cassée", value: null as unknown as number, format: "number" },
+    ];
+    try {
+      validateSummary(summary);
+      expect.unreachable("validateSummary aurait dû jeter");
+    } catch (error) {
+      const message = (error as Error).message;
+      expect(message).toContain("metrics.0.value");
+      expect(message).toContain("Expected number");
+      expect(message).toContain("Expected string");
+    }
+  });
+});
+
+describe("évolution additive du contrat", () => {
+  it("strippe les clés inconnues au lieu de rejeter — un hub v1 tolère un summary v1.x enrichi", () => {
+    const summary = makeValidSummary();
+    const enriched = {
+      ...summary,
+      champFuturOptionnel: "ajouté en v1.1",
+      metrics: [
+        { ...summary.metrics[0], nouveauChampMetric: 42 },
+        summary.metrics[1],
+      ],
+    };
+    const parsed = validateSummary(enriched);
+    expect(parsed).not.toHaveProperty("champFuturOptionnel");
+    expect(parsed.metrics[0]).not.toHaveProperty("nouveauChampMetric");
+    expect(parsed).toEqual(summary);
   });
 });
 
