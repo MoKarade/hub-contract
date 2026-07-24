@@ -369,6 +369,42 @@ describe("buildingSummary", () => {
   });
 });
 
+describe("usage (coûts & quotas, additif v1.1)", () => {
+  it("accepte un summary AVEC usage (coût + quotas)", () => {
+    const s = validateSummary({
+      ...makeValidSummary(),
+      usage: {
+        cost: { amount: 3.42, currency: "USD", period: "mois" },
+        quotas: [{ label: "Gmail", used: 120, limit: 250, unit: "requêtes", resetAt: "2026-07-16T00:00:00.000Z" }],
+      },
+    });
+    expect(s.usage?.cost?.amount).toBe(3.42);
+    expect(s.usage?.quotas?.[0]?.limit).toBe(250);
+  });
+
+  it("usage reste OPTIONNEL (un summary sans usage est valide)", () => {
+    const s = validateSummary(makeValidSummary());
+    expect(s.usage).toBeUndefined();
+  });
+
+  it("quota sans limite connue : limit null admis", () => {
+    const s = validateSummary({
+      ...makeValidSummary(),
+      usage: { quotas: [{ label: "Appels LLM", used: 42, limit: null }] },
+    });
+    expect(s.usage?.quotas?.[0]?.limit).toBeNull();
+  });
+
+  it("rejette une devise hors enum et un montant négatif", () => {
+    expect(() =>
+      validateSummary({ ...makeValidSummary(), usage: { cost: { amount: 1, currency: "EUR", period: "mois" } } }),
+    ).toThrow(/usage\.cost\.currency/);
+    expect(() =>
+      validateSummary({ ...makeValidSummary(), usage: { cost: { amount: -1, currency: "USD", period: "mois" } } }),
+    ).toThrow(/usage\.cost\.amount/);
+  });
+});
+
 describe("constantes du contrat", () => {
   it("expose la version courante et le header d'auth", () => {
     expect(CONTRACT_VERSION).toBe(1);
