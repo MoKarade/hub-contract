@@ -41,6 +41,37 @@ export const HubActionSchema = z.object({
   confirm: z.string().optional(),
 });
 
+/** État d'un quota d'API/service consommé par l'app (carte « Coûts & quotas » du hub). */
+export const HubQuotaSchema = z.object({
+  label: z.string().min(1).max(40),
+  /** Quantité consommée sur la période. */
+  used: z.number().min(0),
+  /** Plafond connu ; null si l'app ne connaît pas de limite chiffrée. */
+  limit: z.number().positive().nullable(),
+  /** Unité affichée (ex: "appels", "Go", "courriels"). Optionnel. */
+  unit: z.string().max(20).optional(),
+  /** Quand le compteur se réinitialise (ex: quota quotidien). Optionnel. */
+  resetAt: z.string().datetime().optional(),
+});
+
+/**
+ * Coût et quotas de l'app (tout optionnel). Le hub agrège `cost` de toutes les apps
+ * (carte « Coûts & quotas », total + par app) et liste les `quotas` dans le détail.
+ * Une app qui ne suit rien omet ce bloc — le hub l'affiche « non suivi », jamais un 0 inventé.
+ */
+export const HubUsageSchema = z.object({
+  cost: z
+    .object({
+      /** Montant dépensé (≥ 0), dans la devise indiquée. */
+      amount: z.number().min(0),
+      currency: z.enum(["USD", "CAD"]),
+      /** Portée du montant : cumulé, ce mois-ci, ou aujourd'hui. */
+      period: z.enum(["total", "mois", "jour"]),
+    })
+    .optional(),
+  quotas: z.array(HubQuotaSchema).max(10).optional(),
+});
+
 /**
  * Le payload complet renvoyé par `GET .../hub/summary`.
  * C'est LE contrat : le hub ne connaît rien d'autre des apps.
@@ -65,11 +96,15 @@ export const HubSummarySchema = z.object({
   metrics: z.array(HubMetricSchema).max(6),
   alerts: z.array(HubAlertSchema).max(10),
   actions: z.array(HubActionSchema).max(6),
+  /** Coûts & quotas de l'app (additif v1.1 ; optionnel — les consumers v1.0 l'ignorent). */
+  usage: HubUsageSchema.optional(),
 });
 
 export type HubMetric = z.infer<typeof HubMetricSchema>;
 export type HubAlert = z.infer<typeof HubAlertSchema>;
 export type HubAction = z.infer<typeof HubActionSchema>;
+export type HubQuota = z.infer<typeof HubQuotaSchema>;
+export type HubUsage = z.infer<typeof HubUsageSchema>;
 export type HubSummary = z.infer<typeof HubSummarySchema>;
 
 function formatIssue(issue: z.ZodIssue): string {
