@@ -31,6 +31,8 @@ TypeScript, deux helpers (`validateSummary`, `buildingSummary`), tests, docs.
    - DriveAI (`api/`)
    - Hub (dashboard `hubperso.com`)
    - app-template
+   - BatchChef (`web/`)
+   - JobAI (racine — pinne le SHA tant que le tag `v1.1.0` n'est pas poussé)
    Chacun pinne un tag précis (`npm install github:MoKarade/hub-contract#vX.Y.Z`) ;
    tant qu'il n'est pas re-pinné, il reste sur l'ancien contrat — c'est voulu.
 
