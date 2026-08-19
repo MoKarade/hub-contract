@@ -25,7 +25,7 @@ flowchart LR
 ## Installation
 
 ```bash
-npm install github:MoKarade/hub-contract#v1.0.0
+npm install github:MoKarade/hub-contract#2d37a61
 ```
 
 Pas de publication npm : l'installation se fait directement depuis GitHub.
@@ -33,8 +33,16 @@ Le script `"prepare": "npm run build"` est exécuté par npm lors d'une install
 git (devDependencies incluses), ce qui compile `dist/` à la volée. Seul `dist/`
 est livré dans `node_modules`.
 
-**Toujours pinner un tag** (`#v1.0.0`), jamais une branche : le contrat ne bouge
-que par release explicite.
+**Toujours pinner une référence immuable**, jamais une branche : le contrat ne bouge que
+par release explicite.
+
+> ⚠️ **Ne pas pinner `#v1.0.0`** : ce tag est antérieur au bloc `usage` (v1.1.0), et comme les
+> clés inconnues sont *strippées* et non rejetées, une app pinnée dessus perdrait `usage`
+> **en silence** — pas d'erreur, juste un bloc qui disparaît du summary.
+>
+> Le tag `v1.1.0` **n'existe pas encore** (voir `HANDOVER.md` : le proxy git refuse la
+> poussée de refs de tag). Les cinq dépôts de l'écosystème épinglent donc le SHA `2d37a61`,
+> qui est le contenu v1.1.0. Dès que le tag sera poussé, `#v1.1.0` sera la forme à préférer.
 
 Fonctionne en CommonJS (`require`), en ESM (`import`) et dans un projet Vite —
 l'exports map fournit les deux formats + les déclarations TypeScript.
@@ -115,6 +123,7 @@ summary v2.
 | `metrics` | array | Max **6** `HubMetric`. |
 | `alerts` | array | Max **10** `HubAlert`. |
 | `actions` | array | Max **6** `HubAction`. |
+| `usage` | object? | Optionnel (v1.1) — coûts & quotas. Voir `HubUsage` ci-dessous. |
 
 ### `HubMetric`
 
@@ -142,6 +151,51 @@ summary v2.
 | `kind` | enum | `link` = deep link (v1). `trigger` = webhook POST — **réservé v2, ne pas implémenter côté apps**. |
 | `href` | `string` | URL cible absolue (un chemin relatif est rejeté). |
 | `confirm` | `string?` | Si présent, le hub demande confirmation avant d'exécuter. |
+
+### `HubUsage` (v1.1, optionnel)
+
+Ce que l'app dépense et ce qu'elle consomme. **Tout est optionnel** : une app qui ne suit
+rien omet le bloc entier, et le hub l'affiche « non suivie » — jamais un 0 inventé.
+
+| Champ | Type | Règles |
+|---|---|---|
+| `cost.amount` | `number` | Montant dépensé, ≥ 0. |
+| `cost.currency` | enum | `USD` \| `CAD`. Le hub convertit en CAD pour l'affichage. |
+| `cost.period` | enum | `total` (cumulé depuis toujours) \| `mois` (mois courant) \| `jour` (aujourd'hui). |
+| `quotas` | array | Max **10** `HubQuota`. |
+
+### `HubQuota`
+
+| Champ | Type | Règles |
+|---|---|---|
+| `label` | `string` | 1 à 40 caractères. |
+| `used` | `number` | Quantité consommée sur la période, ≥ 0. |
+| `limit` | `number \| null` | Plafond connu, > 0 ; **`null`** si l'app ne connaît pas de limite chiffrée — jamais un plafond inventé pour faire une jolie jauge. |
+| `unit` | `string?` | Max 20 caractères (ex: `appels`, `Go`, `courriels`). |
+| `resetAt` | `string?` | Datetime ISO 8601 UTC — quand le compteur se réinitialise. |
+
+#### ⚠️ Le hub ne fusionne JAMAIS deux `period` différentes
+
+C'est la règle la plus importante de ce bloc, et la seule qui puisse produire un chiffre faux
+sans que rien ne casse.
+
+Le hub somme les `cost` **par période** et affiche un montant par période, avec son étiquette.
+Il n'existe volontairement **aucun total global** : additionner un cumul et un mois courant
+donne un nombre qui n'existe pas — et qui est **sous-estimé**, puisqu'il manque les mois
+passés de l'app qui déclare `mois`.
+
+Ce n'est pas théorique : ça a été affiché en production comme « cumulé » jusqu'au correctif du
+31/07/2026 (`Hubperso/lib/usage.ts`, `aggregateUsage` → `totalsByPeriod`, sans `totalCad`).
+
+**Ce que ça demande à un producteur** : choisir la `period` qui décrit *vraiment* le montant,
+pas celle qui l'affiche le mieux. Publier un mois courant sous `total` n'est pas un arrondi —
+c'est un chiffre juste rangé sous une étiquette fausse, et le hub l'additionnera avec les
+cumuls des autres apps.
+
+**Si les deux valeurs existent** : publier le **cumul** en `cost`, et mettre le mois dans un
+`quota` avec son plafond pour `limit`. Rien n'est perdu — la distance au plafond est même plus
+informative qu'un montant nu — et le hub peut afficher un seul montant honnête. C'est ce que
+fait DriveAI.
 
 ### Précisions de validation
 
