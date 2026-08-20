@@ -55,9 +55,22 @@ export const HubQuotaSchema = z.object({
 });
 
 /**
- * Coût et quotas de l'app (tout optionnel). Le hub agrège `cost` de toutes les apps
- * (carte « Coûts & quotas », total + par app) et liste les `quotas` dans le détail.
- * Une app qui ne suit rien omet ce bloc — le hub l'affiche « non suivi », jamais un 0 inventé.
+ * Coût et quotas de l'app (tout optionnel). Une app qui ne suit rien omet ce bloc — le hub
+ * l'affiche « non suivi », jamais un 0 inventé.
+ *
+ * ⚠️ LE HUB NE FUSIONNE JAMAIS DEUX `period` DIFFÉRENTES. Il somme les `cost` PAR période
+ * (« cumulé », « ce mois-ci », « aujourd'hui ») et affiche un montant par période, avec son
+ * étiquette. Il n'existe volontairement AUCUN total global : additionner un cumul et un mois
+ * courant donne un nombre qui n'existe pas — et qui est SOUS-ESTIMÉ, puisqu'il manque les
+ * mois passés de l'app qui déclare « mois ». C'est arrivé, et c'était affiché « cumulé »
+ * (correctif du 31/07/2026 côté hub, cf. Hubperso/lib/usage.ts).
+ *
+ * Conséquence pour un producteur : choisir la `period` qui décrit VRAIMENT le montant, pas
+ * celle qui l'affiche le mieux. Publier un mois courant sous `total` n'est pas un arrondi,
+ * c'est un chiffre juste rangé sous une étiquette fausse — et le hub l'additionnera avec les
+ * cumuls des autres apps. Si les deux valeurs existent, publier le CUMUL en `cost` et mettre
+ * le mois dans un `quota` avec son plafond : rien n'est perdu, et le hub peut enfin afficher
+ * un seul montant honnête.
  */
 export const HubUsageSchema = z.object({
   cost: z
