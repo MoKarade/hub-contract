@@ -250,3 +250,52 @@ npm run typecheck  # tsc --noEmit (strict)
 Les règles complètes (breaking change, changement additif, consommateurs à
 re-pinner) sont dans [CLAUDE.md](./CLAUDE.md). L'état courant du repo et la
 procédure de release sont dans [HANDOVER.md](./HANDOVER.md).
+
+## Deux modes d'échec, et ils ne disent pas la même chose
+
+`validateSummary` juge la **version avant la structure**, et jette deux choses différentes :
+
+| Ce qui est jeté | Ce que ça veut dire | Qui doit agir |
+|---|---|---|
+| `ContractTooNewError` | L'app publie une version que ce build ne lit pas. | **Le consommateur** : re-pinner le hub. |
+| `Error` | Le payload est hors contrat. | **L'app** : le message liste chaque issue Zod. |
+
+Avant la v1.2.0, `contractVersion` était un `z.literal` : un summary v2 levait la même erreur
+qu'un JSON malformé, et le hub affichait « invalide » — ce qui accuse l'app alors que c'est le
+hub qui est en retard d'un re-pin.
+
+Plus grave : avec un littéral, **hub et apps doivent basculer au même instant.** Il n'existe
+aucune fenêtre où les deux versions coexistent, donc aucun ordre de déploiement valide. Un
+contrat qui interdit sa propre évolution finit par ne jamais évoluer.
+
+L'ordre compte : une version majeure peut légitimement retirer un champ, donc parser la
+structure d'abord ferait sortir « invalide » et le vrai diagnostic serait perdu.
+
+## `@mokarade/hub-contract/endpoint` — le endpoint écrit une fois
+
+```ts
+import { serveSummary, HUB_TOKEN_HEADER } from "@mokarade/hub-contract/endpoint";
+
+export async function GET(request: Request) {
+  const r = await serveSummary(
+    { method: request.method, token: request.headers.get(HUB_TOKEN_HEADER) },
+    { expectedToken: process.env.HUB_TOKEN, build: construireSummary },
+  );
+  return new Response(r.body, { status: r.status, headers: r.headers });
+}
+```
+
+Il applique le contrat de bout en bout, **dans cet ordre** : méthode (405), configuration
+(503), autorisation (401), construction (500 si elle jette), validation avant émission (200).
+
+L'ordre n'est pas indifférent. Vérifier le jeton avant la configuration répondrait 401 à un
+appelant parfaitement légitime quand c'est l'app qui n'a rien de branché — et on chercherait un
+problème d'authentification là où il n'y a rien à trouver.
+
+Le module est **sans framework** (ni `Request`, ni `next/server`) : une route Next, une fonction
+serverless et un test unitaire appellent la même fonction. La comparaison de jeton passe par un
+digest SHA-256 puis un XOR sur toute la longueur — `crypto.subtle` plutôt que `timingSafeEqual`,
+qui est propre à Node et absent du runtime Edge.
+
+⚠️ Inutilisable depuis un `api/` déclaré « zéro dépendance npm » (le broker DriveAI). Ce n'est
+pas un oubli : cette contrainte-là est un choix de ce dépôt-là.

@@ -1,6 +1,6 @@
 {
   "name": "@mokarade/hub-contract",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Contrat d'intégration hub perso <-> apps : types TypeScript + schémas Zod du endpoint GET /hub/summary",
   "license": "UNLICENSED",
   "repository": {
@@ -22,7 +22,17 @@
         "default": "./dist/index.js"
       }
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./endpoint": {
+      "import": {
+        "types": "./dist/endpoint.d.mts",
+        "default": "./dist/endpoint.mjs"
+      },
+      "require": {
+        "types": "./dist/endpoint.d.ts",
+        "default": "./dist/endpoint.js"
+      }
+    }
   },
   "files": [
     "dist"

@@ -90,7 +90,12 @@ export const HubUsageSchema = z.object({
  * C'est LE contrat : le hub ne connaît rien d'autre des apps.
  */
 export const HubSummarySchema = z.object({
-  contractVersion: z.literal(CONTRACT_VERSION),
+  /**
+   * Version du format de fil publiée par l'app. Volontairement PAS un `z.literal` :
+   * voir `validateSummary`, qui sonde ce champ AVANT la structure pour pouvoir dire
+   * « trop récent » au lieu de « invalide ».
+   */
+  contractVersion: z.number().int().min(1),
   app: z.object({
     /** Identifiant stable de l'app, kebab-case (ex: "financeai", "drive-ai"). */
     id: z.string().regex(/^[a-z0-9-]+$/),
@@ -120,6 +125,46 @@ export type HubQuota = z.infer<typeof HubQuotaSchema>;
 export type HubUsage = z.infer<typeof HubUsageSchema>;
 export type HubSummary = z.infer<typeof HubSummarySchema>;
 
+/**
+ * Le summary est syntaxiquement lisible mais annonce une version du contrat que CE build
+ * ne sait pas lire (`contractVersion > CONTRACT_VERSION`).
+ *
+ * Elle existe pour une raison précise : **c'est le seul mode d'échec qui n'est pas la faute
+ * de l'app.** Sans elle, un hub épinglé sur v1 qui reçoit un summary v2 lève la même erreur
+ * que pour un JSON malformé, et affiche « invalide » — ce qui accuse l'app alors que c'est le
+ * hub qui est en retard d'un re-pin. Le diagnostic pointe le mauvais dépôt, et la vraie action
+ * (re-pinner le consommateur) n'est nulle part.
+ *
+ * Elle est aussi ce qui rend un déploiement ORDONNÉ possible. Avec un `z.literal`, hub et apps
+ * doivent basculer au même instant : il n'existe aucune fenêtre où les deux versions coexistent,
+ * donc aucun ordre de déploiement valide. Un contrat qui interdit sa propre évolution finit par
+ * ne jamais évoluer.
+ */
+export class ContractTooNewError extends Error {
+  /** Version annoncée par l'app. */
+  readonly published: number;
+  /** Version maximale que ce build sait lire. */
+  readonly supported: number;
+
+  constructor(published: number, supported: number) {
+    super(
+      `contractVersion ${published} non supportée — ce build lit jusqu'à la version ${supported}. ` +
+        `L'app est en avance : re-pinner le consommateur sur une version du contrat >= ${published}.`,
+    );
+    this.name = "ContractTooNewError";
+    this.published = published;
+    this.supported = supported;
+  }
+}
+
+/**
+ * Sonde minimale : ne lit QUE la version, pour la juger avant la structure.
+ * Un changement de version majeure peut légitimement renommer ou retirer un champ — parser
+ * d'abord et sonder ensuite ferait échouer la structure en premier, et l'erreur « trop récent »
+ * ne sortirait jamais. L'ordre est donc: version, PUIS structure.
+ */
+const VersionProbeSchema = z.object({ contractVersion: z.number().int().min(1) });
+
 function formatIssue(issue: z.ZodIssue): string {
   const path = issue.path.length > 0 ? issue.path.join(".") : "(racine)";
   if (issue.code === z.ZodIssueCode.invalid_union) {
@@ -134,11 +179,25 @@ function formatIssue(issue: z.ZodIssue): string {
 
 /**
  * Valide un payload inconnu contre le contrat.
- * Retourne le summary typé, ou jette une Error listant chaque issue Zod
- * (chemin + message, branches d'union détaillées) pour un diagnostic
- * immédiat côté hub.
+ *
+ * Retourne le summary typé, ou jette — et **les deux modes d'échec ne disent pas la même
+ * chose**, c'est tout l'intérêt de les séparer :
+ *
+ * - `ContractTooNewError` — l'app publie une version que ce build ne lit pas. L'app va bien,
+ *   c'est le consommateur qui est à re-pinner.
+ * - `Error` — le payload est hors contrat. Le message liste chaque issue Zod (chemin + message,
+ *   branches d'union détaillées) pour un diagnostic immédiat côté hub.
+ *
+ * ⚠️ Zod **strippe** les clés inconnues au lieu de les rejeter : un consommateur épinglé sur un
+ * tag antérieur à un champ le perd SANS erreur. Un test de contrat doit donc comparer ce qui est
+ * RENDU, jamais se contenter de « ça ne lève pas ».
  */
 export function validateSummary(data: unknown): HubSummary {
+  const probe = VersionProbeSchema.safeParse(data);
+  if (probe.success && probe.data.contractVersion > CONTRACT_VERSION) {
+    throw new ContractTooNewError(probe.data.contractVersion, CONTRACT_VERSION);
+  }
+
   const result = HubSummarySchema.safeParse(data);
   if (result.success) {
     return result.data;
