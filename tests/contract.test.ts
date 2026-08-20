@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import {
   CONTRACT_VERSION,
+  ContractTooNewError,
   HUB_TOKEN_HEADER,
   HubSummarySchema,
   buildingSummary,
@@ -93,9 +95,19 @@ describe("validateSummary — cas valide", () => {
 });
 
 describe("validateSummary — violations clés", () => {
-  it("rejette un contractVersion différent de la version courante", () => {
+  it("rejette un contractVersion trop RÉCENT, et le dit distinctement", () => {
     const summary = { ...makeValidSummary(), contractVersion: 2 };
+    // Pas un `Error` générique : le hub doit pouvoir afficher « contrat trop récent » plutôt
+    // qu'« invalide », qui accuserait l'app alors que c'est le consommateur à re-pinner.
+    expect(() => validateSummary(summary)).toThrow(ContractTooNewError);
     expect(() => validateSummary(summary)).toThrow(/contractVersion/);
+  });
+
+  it("rejette un contractVersion absent, nul ou non entier", () => {
+    for (const v of [undefined, 0, -1, 1.5, "1"]) {
+      const summary = { ...makeValidSummary(), contractVersion: v };
+      expect(() => validateSummary(summary)).toThrow();
+    }
   });
 
   it("rejette une couleur qui n'est pas un hex 6 digits", () => {
@@ -409,5 +421,58 @@ describe("constantes du contrat", () => {
   it("expose la version courante et le header d'auth", () => {
     expect(CONTRACT_VERSION).toBe(1);
     expect(HUB_TOKEN_HEADER).toBe("x-hub-token");
+  });
+});
+
+describe("ContractTooNewError — le seul échec qui n'est pas la faute de l'app", () => {
+  it("porte les deux versions, pour que le message dise quoi re-pinner", () => {
+    const summary = { ...makeValidSummary(), contractVersion: 7 };
+    try {
+      validateSummary(summary);
+      expect.unreachable("aurait dû jeter");
+    } catch (e) {
+      expect(e).toBeInstanceOf(ContractTooNewError);
+      const err = e as ContractTooNewError;
+      expect(err.published).toBe(7);
+      expect(err.supported).toBe(CONTRACT_VERSION);
+      expect(err.name).toBe("ContractTooNewError");
+    }
+  });
+
+  it("la version est jugée AVANT la structure", () => {
+    // Une version majeure peut légitimement retirer un champ. Si la structure était parsée
+    // d'abord, l'erreur sortirait en « invalide » et le vrai diagnostic serait perdu.
+    const casse = { contractVersion: 9, app: { id: "x" } };
+    expect(() => validateSummary(casse)).toThrow(ContractTooNewError);
+  });
+
+  it("un summary à la version courante passe, lui", () => {
+    const summary = { ...makeValidSummary(), contractVersion: CONTRACT_VERSION };
+    expect(validateSummary(summary).contractVersion).toBe(CONTRACT_VERSION);
+  });
+});
+
+describe("stripping de Zod : vérifier ce qui est RENDU, pas seulement que ça ne lève pas", () => {
+  it("un champ inconnu est SILENCIEUSEMENT retiré du résultat", () => {
+    const enrichi = { ...makeValidSummary(), champInconnuDuFutur: { a: 1 } };
+    const rendu = validateSummary(enrichi) as Record<string, unknown>;
+
+    // Le test qui compte : « ça n'a pas levé » est compatible avec « le champ a disparu ».
+    expect(rendu.champInconnuDuFutur).toBeUndefined();
+    expect("champInconnuDuFutur" in rendu).toBe(false);
+  });
+
+  it("usage entier disparaît chez un consommateur qui ne le connaît pas — démonstration", () => {
+    // Reproduit ce qui arrive à une app épinglée AVANT la v1.1 : elle reçoit `usage`,
+    // ne lève rien, et n'affiche aucun coût. Aucune erreur nulle part.
+    const sansUsage = z.object({ contractVersion: z.number() }).passthrough().parse({
+      ...makeValidSummary(),
+      usage: { cost: { amount: 12, currency: "CAD", period: "total" } },
+    });
+    expect(sansUsage.usage).toBeDefined(); // le champ EST bien sur le fil…
+
+    const consommateurAncien = HubSummarySchema.omit({ usage: true }).strip();
+    const vu = consommateurAncien.parse(sansUsage) as Record<string, unknown>;
+    expect(vu.usage).toBeUndefined(); // …et il a disparu à la lecture, sans un mot.
   });
 });
