@@ -14,16 +14,22 @@
 - Docs : `README.md` (contrat commenté, auth, CORS), `CLAUDE.md` (règles
   d'évolution).
 
-## 👤 Action requise — le tag `v1.1.0` n'existe pas
+## ✅ Le tag `v1.1.0` existe (2026-08-20)
 
-`package.json` annonce `1.1.0` depuis le merge de #1, mais **seul `v1.0.0` est
-tagué** : un consommateur qui pinne `#v1.1.0` échoue à l'install, et JobAI
-pinne le SHA en attendant. La session Claude ne peut pas pousser de tag (le
-proxy git n'autorise que sa branche de travail) — une commande sur ton poste :
+Poussé par Marc, il pointe `3bbbf19` (tête de `main`). `package.json` annonce
+`1.1.0` depuis le merge de #1 ; le tag et la version concordent enfin.
 
-```bash
-git fetch origin main && git tag -a v1.1.0 2d37a61 -m "hub-contract v1.1.0 — bloc usage" && git push origin v1.1.0
-```
+Pourquoi `3bbbf19` et non `2d37a61`, le SHA que les cinq dépôts épinglent : entre
+les deux, `src/index.ts` n'a gagné **que des commentaires** — aucun changement de
+schéma, version inchangée. Le tag désigne donc exactement le contrat déjà en
+service. Les dépôts peuvent passer de `#2d37a61` à `#v1.1.0` au prochain re-pin,
+sans urgence : les deux résolvent le même contrat.
+
+⚠️ Pour mémoire, si un futur tag est nécessaire : **une session Claude ne peut pas
+le pousser**. Le proxy git rend `HTTP 403` sur les refs de tag (vérifié le
+2026-08-20, pas déduit), et les outils GitHub disponibles en session sont en
+lecture seule pour les tags et les releases. C'est une commande sur le poste de
+Marc, ou l'écran *Releases* de GitHub.
 
 ## Comment tagger une release
 

@@ -25,7 +25,7 @@ flowchart LR
 ## Installation
 
 ```bash
-npm install github:MoKarade/hub-contract#2d37a61
+npm install github:MoKarade/hub-contract#v1.1.0
 ```
 
 Pas de publication npm : l'installation se fait directement depuis GitHub.
@@ -40,9 +40,10 @@ par release explicite.
 > clés inconnues sont *strippées* et non rejetées, une app pinnée dessus perdrait `usage`
 > **en silence** — pas d'erreur, juste un bloc qui disparaît du summary.
 >
-> Le tag `v1.1.0` **n'existe pas encore** (voir `HANDOVER.md` : le proxy git refuse la
-> poussée de refs de tag). Les cinq dépôts de l'écosystème épinglent donc le SHA `2d37a61`,
-> qui est le contenu v1.1.0. Dès que le tag sera poussé, `#v1.1.0` sera la forme à préférer.
+> **`v1.1.0` existe depuis le 2026-08-20** et pointe `3bbbf19`. Les cinq dépôts de
+> l'écosystème épinglent encore le SHA `2d37a61` : ça reste **valide** — le schéma est
+> identique entre les deux, seuls des commentaires et le README ont bougé — mais `#v1.1.0`
+> est désormais la forme à préférer au prochain re-pin. Rien à faire dans l'urgence.
 
 Fonctionne en CommonJS (`require`), en ESM (`import`) et dans un projet Vite —
 l'exports map fournit les deux formats + les déclarations TypeScript.
