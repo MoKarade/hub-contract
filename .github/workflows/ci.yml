@@ -26,6 +26,9 @@ permissions:
 
 jobs:
   gate:
+    # Plafond : sans lui, un job fige tourne SIX HEURES avant d'echouer (vecu sur
+    # DriveAI le 19/08/2026). Calibre sur la duree reelle — 19 s observe.
+    timeout-minutes: 15
     name: Gate (build · tests · typecheck)
     runs-on: ubuntu-latest
     steps:
@@ -93,6 +96,9 @@ jobs:
           '
 
   version-et-tag:
+    # Plafond : sans lui, un job fige tourne SIX HEURES avant d'echouer (vecu sur
+    # DriveAI le 19/08/2026). Calibre sur la duree reelle — skippe - job trivial.
+    timeout-minutes: 10
     name: Version du package = tag poussé
     # Uniquement sur un tag : ailleurs, il n'y a rien à comparer.
     if: startsWith(github.ref, 'refs/tags/v')
