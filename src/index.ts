@@ -13,14 +13,67 @@ export const CONTRACT_VERSION = 1;
  */
 export const HUB_TOKEN_HEADER = "x-hub-token";
 
-/** Une métrique affichée dans le widget de l'app (max 6 par summary). */
-export const HubMetricSchema = z.object({
+/**
+ * La forme commune à tout ce qui est « un libellé et un nombre » dans ce contrat : une
+ * métrique de carte (`HubMetric`) et une ligne de détail (`HubDetailItem`).
+ *
+ * Elle n'est PAS exportée, et c'est une décision. Les deux usages divergent par un champ
+ * chacun (`primary` pour la carte, `hint` pour le détail), et exporter la base inviterait un
+ * producteur à publier une mesure « neutre » qui n'est ni l'un ni l'autre — donc que le hub
+ * ne saurait pas où mettre.
+ */
+const MesureSchema = z.object({
   label: z.string().min(1).max(40),
   value: z.union([z.number(), z.string()]),
   format: z.enum(["currency", "percent", "number", "text"]),
   /** Variation relative signée en % (ex: +2.3). Optionnel. */
   trend: z.number().optional(),
   severity: z.enum(["ok", "warn", "alert"]).optional(),
+});
+
+/** Une métrique affichée dans le widget de l'app (max 6 par summary). */
+export const HubMetricSchema = MesureSchema.extend({
+  /**
+   * Cette métrique est LE chiffre de l'app — celui qui porte la grande tuile du hub
+   * (additif v1.3, optionnel).
+   *
+   * ⚠️ C'est un drapeau PORTÉ PAR la métrique, et non un `primaryMetric: "<label>"` à la
+   * racine du summary. La différence compte : une référence par libellé peut pendre dans le
+   * vide (l'app renomme la métrique, oublie la référence, et le hub cherche un libellé qui
+   * n'existe plus), alors qu'un drapeau ne peut désigner que ce à quoi il est attaché. Il
+   * n'existe donc aucun état « désigne une métrique absente ».
+   *
+   * Une seule métrique peut le porter — voir le `refine` sur le tableau `metrics`. Le hub
+   * retombe sur la première métrique quand aucune ne le porte : c'est ce qu'il faisait déjà,
+   * la nouveauté est de pouvoir le dire au lieu de le laisser deviner.
+   */
+  primary: z.boolean().optional(),
+});
+
+/**
+ * Une ligne de la vue détaillée (additif v1.3). Même forme qu'une métrique, plus une
+ * précision courte — et sans `primary` : une ligne de détail n'est jamais le titre d'une
+ * carte, sinon le plafond de 6 métriques ne voudrait plus rien dire.
+ */
+export const HubDetailItemSchema = MesureSchema.extend({
+  /**
+   * Précision affichée sous la valeur : l'unité, la période couverte, la base d'un
+   * pourcentage. C'est ce qui empêche « +4,2 % » d'être ambigu — +4,2 % depuis quand, sur
+   * quoi ? Un chiffre dont on ne peut pas dire ce qu'il mesure vaut moins qu'aucun chiffre.
+   */
+  hint: z.string().max(80).optional(),
+});
+
+/**
+ * Un groupe de lignes de détail, affiché comme un bloc titré (additif v1.3).
+ *
+ * `min(1)` sur `items` est délibéré : une section vide est un titre au-dessus de rien. Le
+ * hub rendrait un encadré vide, ce qui ressemble à une donnée qui n'a pas chargé — alors
+ * que le producteur a simplement publié une coquille. Mieux vaut refuser la section.
+ */
+export const HubDetailSectionSchema = z.object({
+  title: z.string().min(1).max(40),
+  items: z.array(HubDetailItemSchema).min(1).max(8),
 });
 
 /** Une alerte remontée au hub (max 10 par summary). */
@@ -86,8 +139,45 @@ export const HubUsageSchema = z.object({
 });
 
 /**
+ * LA prochaine chose à faire, selon l'app (additif v1.3, optionnel).
+ *
+ * ── POURQUOI UN CHAMP, ET PAS UNE ALERTE ─────────────────────────────────────────────
+ *
+ * La tentation était de réutiliser `alerts` avec une `severity: "info"` — zéro changement
+ * de contrat. C'est ce qui a été écarté, parce qu'une alerte et une recommandation ne
+ * répondent pas à la même question. Une alerte dit **ce qui va mal** ; une recommandation
+ * dit **ce qu'il y a de mieux à faire**, et le plus souvent rien ne va mal. Les fondre
+ * laisse deux issues, mauvaises toutes les deux : soit un bon conseil s'affiche avec la
+ * mise en forme d'un problème, soit la liste des problèmes se dilue de conseils et on
+ * apprend à ne plus la lire.
+ *
+ * ── UNE SEULE, PAS UN TABLEAU ────────────────────────────────────────────────────────
+ *
+ * Volontairement singulier. Un tableau de recommandations serait rempli — cinq conseils
+ * classés par une app qui ne voit qu'elle-même — et un tableau de bord qui en affiche cinq
+ * n'en affiche aucune : le lecteur arbitre, donc ne fait rien. Le producteur est obligé de
+ * choisir, ce qui est précisément le travail qu'on lui demande. Le détail vit dans l'app,
+ * au bout du `href`.
+ */
+export const HubRecommendationSchema = z.object({
+  /** L'action, à l'impératif et chiffrée quand c'est possible. */
+  label: z.string().min(1).max(80),
+  /** Pourquoi, en une phrase. Une recommandation sans raison ne se vérifie pas. */
+  why: z.string().min(1).max(140).optional(),
+  /** Deep link vers l'écran où l'on fait la chose. */
+  href: z.string().url().optional(),
+});
+
+/**
  * Le payload complet renvoyé par `GET .../hub/summary`.
  * C'est LE contrat : le hub ne connaît rien d'autre des apps.
+ *
+ * ⚠️ Ce schéma reste un `ZodObject` PUR — aucun `.superRefine` à ce niveau. Les
+ * consommateurs et les tests s'appuient sur `.omit()` / `.extend()` (cf. le test de
+ * stripping, qui simule un consommateur épinglé sur un tag antérieur), et un `.superRefine`
+ * transformerait le schéma en `ZodEffects`, où ces méthodes n'existent pas. Les cohérences
+ * qui portent sur UN champ vivent donc sur ce champ (voir les `refine` sur `metrics` et
+ * `details`), et la seule qui relie DEUX champs frères est vérifiée dans `validateSummary`.
  */
 export const HubSummarySchema = z.object({
   /**
@@ -109,11 +199,80 @@ export const HubSummarySchema = z.object({
   /** Fraîcheur des données sous-jacentes si différente de generatedAt
       (ex: dernière synchronisation d'état). */
   dataAsOf: z.string().datetime().optional(),
+  /**
+   * Âge maximal NORMAL de `dataAsOf`, en secondes (additif v1.3, optionnel).
+   *
+   * ── CE QU'IL RÉPARE ──────────────────────────────────────────────────────────────────
+   *
+   * Le hub voit `dataAsOf` mais ne sait pas si sa valeur est bonne ou mauvaise. « 40 min »
+   * est parfaitement sain pour un véhicule qui se rafraîchit aux 30-60 min, et catastrophique
+   * pour un moteur qui passe aux 5 min. Faute de savoir, le hub ne pouvait que deviner — donc
+   * se tromper pour au moins une app, et un seuil deviné côté hub serait de la connaissance
+   * d'app codée en dur, exactement ce que le contrat existe pour éviter.
+   *
+   * Avec ce champ, c'est l'app qui déclare son propre rythme et le hub ne fait que comparer.
+   * Il peut alors distinguer, sans rien savoir du métier : donnée fraîche, donnée FIGÉE
+   * au-delà du normal, et fraîcheur non déclarée. Mesuré le 14/09/2026 : un poll annoncé
+   * toutes les 30 min avait un trou de 6 h 53, tous les runs verts et rien à l'écran.
+   *
+   * ── CE QU'IL NE PROMET PAS ───────────────────────────────────────────────────────────
+   *
+   * Un âge dépassé n'est pas une panne : c'est un retard OBSERVABLE. Le producteur déclare
+   * un rythme attendu, pas une garantie — et c'est le hub qui décide comment le dire.
+   *
+   * Plafond à 30 jours : au-delà, ce n'est plus une déclaration de fraîcheur, c'est son
+   * absence, et il vaut mieux omettre le champ que de promettre un mois.
+   *
+   * ⚠️ N'a aucun sens sans `dataAsOf` : voir le contrôle dans `validateSummary`.
+   */
+  expectedMaxAgeSec: z.number().int().positive().max(2_592_000).optional(),
   /** "building" = app en développement, moteur pas encore actif. */
   status: z.enum(["ok", "degraded", "error", "building"]),
-  metrics: z.array(HubMetricSchema).max(6),
+  metrics: z
+    .array(HubMetricSchema)
+    .max(6)
+    // Deux métriques « principales » ne désignent plus rien : le hub devrait en choisir une,
+    // donc redeviner. Refuser ici force le producteur à trancher, ce qui est son travail.
+    .refine(
+      (metriques) => metriques.filter((m) => m.primary === true).length <= 1,
+      { message: "au plus une métrique peut porter primary: true" },
+    ),
   alerts: z.array(HubAlertSchema).max(10),
   actions: z.array(HubActionSchema).max(6),
+  /**
+   * La vue détaillée de l'app : des sections titrées, affichées quand on demande les détails
+   * (additif v1.3, optionnel). Le plafond de 6 `metrics` protège la LISIBILITÉ DE LA CARTE ;
+   * il n'avait aucune raison de borner ce qu'on peut consulter en cliquant.
+   *
+   * ⚠️ LES LIBELLÉS SERVENT DE CLÉ, DONC ILS DOIVENT ÊTRE UNIQUES. Le hub garde une mémoire
+   * des relevés pour tracer l'évolution d'une valeur dans le temps, et cette série est
+   * retrouvée PAR SON LIBELLÉ. Deux lignes homonymes dans la même section donneraient une
+   * courbe qui saute d'une grandeur à l'autre — un graphe faux, sans rien d'anormal à
+   * l'écran. Le couple (titre de section, libellé) est donc la clé, et les deux
+   * contrôles ci-dessous sont ce qui la rend fiable : titres de sections distincts, et
+   * libellés distincts À L'INTÉRIEUR d'une section.
+   *
+   * Deux sections PEUVENT réutiliser le même libellé (« Placements » sous « Aujourd'hui »
+   * et sous « Depuis le début » est une forme légitime, et même la plus lisible) — c'est
+   * exactement pourquoi la clé est le couple et non le libellé seul.
+   */
+  details: z
+    .array(HubDetailSectionSchema)
+    .max(6)
+    .refine(
+      (sections) => new Set(sections.map((s) => s.title)).size === sections.length,
+      { message: "deux sections de détail ne peuvent pas porter le même titre" },
+    )
+    .refine(
+      (sections) =>
+        sections.every(
+          (s) => new Set(s.items.map((i) => i.label)).size === s.items.length,
+        ),
+      { message: "deux lignes d'une même section ne peuvent pas porter le même libellé" },
+    )
+    .optional(),
+  /** LA prochaine chose à faire selon l'app (additif v1.3, optionnel). */
+  recommendation: HubRecommendationSchema.optional(),
   /** Coûts & quotas de l'app (additif v1.1 ; optionnel — les consumers v1.0 l'ignorent). */
   usage: HubUsageSchema.optional(),
 });
@@ -123,6 +282,9 @@ export type HubAlert = z.infer<typeof HubAlertSchema>;
 export type HubAction = z.infer<typeof HubActionSchema>;
 export type HubQuota = z.infer<typeof HubQuotaSchema>;
 export type HubUsage = z.infer<typeof HubUsageSchema>;
+export type HubDetailItem = z.infer<typeof HubDetailItemSchema>;
+export type HubDetailSection = z.infer<typeof HubDetailSectionSchema>;
+export type HubRecommendation = z.infer<typeof HubRecommendationSchema>;
 export type HubSummary = z.infer<typeof HubSummarySchema>;
 
 /**
@@ -178,6 +340,31 @@ function formatIssue(issue: z.ZodIssue): string {
 }
 
 /**
+ * Les cohérences qui relient DEUX champs frères, donc invérifiables depuis l'un d'eux.
+ *
+ * Elles vivent ici plutôt qu'en `.superRefine` sur `HubSummarySchema` pour la raison écrite
+ * en tête de ce schéma : le garder `ZodObject` préserve `.omit()` / `.extend()`, dont
+ * dépendent les tests et tout consommateur qui simule un tag antérieur.
+ *
+ * ⚠️ Conséquence à connaître : un appel DIRECT à `HubSummarySchema.safeParse` ne les
+ * exécute pas. `validateSummary` est la seule porte complète — et c'est celle que le hub et
+ * les cinq apps empruntent déjà (`serveSummary` l'appelle avant d'émettre).
+ */
+function verifierCoherences(summary: HubSummary): HubSummary {
+  // Un âge maximal attendu sans horodatage à comparer ne mesure rien. Le laisser passer
+  // serait pire qu'inutile : le producteur croirait sa fraîcheur surveillée, et le hub
+  // n'aurait rien à surveiller. Personne ne verrait l'écart — c'est la forme exacte du
+  // mode de panne que ce champ est censé fermer.
+  if (summary.expectedMaxAgeSec !== undefined && summary.dataAsOf === undefined) {
+    throw new Error(
+      "HubSummary invalide (1 issue) — expectedMaxAgeSec: sans dataAsOf, aucun âge n'est " +
+        "mesurable. Publier les deux, ou aucun des deux.",
+    );
+  }
+  return summary;
+}
+
+/**
  * Valide un payload inconnu contre le contrat.
  *
  * Retourne le summary typé, ou jette — et **les deux modes d'échec ne disent pas la même
@@ -200,7 +387,7 @@ export function validateSummary(data: unknown): HubSummary {
 
   const result = HubSummarySchema.safeParse(data);
   if (result.success) {
-    return result.data;
+    return verifierCoherences(result.data);
   }
   const issues = result.error.issues.map(formatIssue).join(" | ");
   throw new Error(

@@ -476,3 +476,227 @@ describe("stripping de Zod : vérifier ce qui est RENDU, pas seulement que ça n
     expect(vu.usage).toBeUndefined(); // …et il a disparu à la lecture, sans un mot.
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// v1.3 — quatre ajouts additifs : details, primary, recommendation, expectedMaxAgeSec.
+//
+// Chaque bloc porte un cas VALIDE dont on compare ce qui est RENDU (Zod strippe : « ça n'a
+// pas levé » est compatible avec « le champ a disparu ») et au moins un cas REJETÉ.
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+const sectionsValides: HubSummary["details"] = [
+  {
+    title: "Aujourd'hui",
+    items: [
+      { label: "Gagné", value: 210.5, format: "currency" },
+      { label: "Dépensé", value: 68.2, format: "currency", severity: "warn" },
+      {
+        label: "Placements",
+        value: 1.8,
+        format: "percent",
+        trend: 1.8,
+        hint: "depuis la clôture de la veille",
+      },
+    ],
+  },
+  {
+    title: "Depuis le début",
+    items: [
+      // MÊME libellé que dans la section précédente : c'est le cas qui prouve que la clé
+      // est le COUPLE (section, libellé) et non le libellé seul.
+      { label: "Placements", value: 230126, format: "currency", hint: "+18,4 % / +35 800 $" },
+    ],
+  },
+];
+
+describe("v1.3 — details (la vue détaillée)", () => {
+  it("rend les sections INTACTES, hint compris", () => {
+    const summary = { ...makeValidSummary(), details: sectionsValides };
+    expect(validateSummary(summary).details).toEqual(sectionsValides);
+  });
+
+  it("accepte le même libellé dans DEUX sections différentes", () => {
+    // Discriminant : si la contrainte d'unicité était posée sur le libellé seul au lieu du
+    // couple, ce cas légitime — et le plus lisible — serait rejeté.
+    const rendu = validateSummary({ ...makeValidSummary(), details: sectionsValides });
+    expect(rendu.details?.[0]?.items[2]?.label).toBe("Placements");
+    expect(rendu.details?.[1]?.items[0]?.label).toBe("Placements");
+  });
+
+  it("rejette deux sections qui portent le même titre", () => {
+    const details = [sectionsValides![0]!, { ...sectionsValides![0]! }];
+    expect(() => validateSummary({ ...makeValidSummary(), details })).toThrow(/même titre/);
+  });
+
+  it("rejette deux lignes homonymes DANS une même section", () => {
+    const details = [
+      {
+        title: "Aujourd'hui",
+        items: [
+          { label: "Gagné", value: 1, format: "currency" as const },
+          { label: "Gagné", value: 2, format: "currency" as const },
+        ],
+      },
+    ];
+    expect(() => validateSummary({ ...makeValidSummary(), details })).toThrow(/même libellé/);
+  });
+
+  it("rejette une section vide (un titre au-dessus de rien)", () => {
+    const details = [{ title: "Aujourd'hui", items: [] }];
+    expect(() => validateSummary({ ...makeValidSummary(), details })).toThrow(/details/);
+  });
+
+  it("rejette plus de 6 sections, et plus de 8 lignes par section", () => {
+    const uneSection = (n: number) => ({
+      title: `Section ${n}`,
+      items: [{ label: "x", value: 1, format: "number" as const }],
+    });
+    expect(() =>
+      validateSummary({
+        ...makeValidSummary(),
+        details: Array.from({ length: 7 }, (_, i) => uneSection(i)),
+      }),
+    ).toThrow(/details/);
+
+    expect(() =>
+      validateSummary({
+        ...makeValidSummary(),
+        details: [
+          {
+            title: "Trop",
+            items: Array.from({ length: 9 }, (_, i) => ({
+              label: `l${i}`,
+              value: i,
+              format: "number" as const,
+            })),
+          },
+        ],
+      }),
+    ).toThrow(/details/);
+  });
+
+  it("une ligne de détail ne peut PAS se déclarer primary — le champ est retiré", () => {
+    // Le plafond de 6 métriques protège la carte : une ligne de détail promue en titre le
+    // contournerait. L'omission de `primary` dans le schéma de détail est ce qui l'empêche.
+    const rendu = validateSummary({
+      ...makeValidSummary(),
+      details: [
+        {
+          title: "Aujourd'hui",
+          items: [{ label: "Gagné", value: 1, format: "currency", primary: true }],
+        },
+      ],
+    });
+    expect(rendu.details?.[0]?.items[0]).not.toHaveProperty("primary");
+  });
+
+  it("un summary sans details reste valide (rétrocompatibilité v1.2)", () => {
+    const rendu = validateSummary(makeValidSummary());
+    expect(rendu.details).toBeUndefined();
+  });
+});
+
+describe("v1.3 — primary (quelle métrique porte la grande tuile)", () => {
+  it("rend primary: true sur la métrique désignée", () => {
+    const summary = makeValidSummary();
+    summary.metrics[0]!.primary = true;
+    expect(validateSummary(summary).metrics[0]?.primary).toBe(true);
+  });
+
+  it("rejette DEUX métriques principales", () => {
+    const summary = makeValidSummary();
+    summary.metrics[0]!.primary = true;
+    summary.metrics[1]!.primary = true;
+    expect(() => validateSummary(summary)).toThrow(/au plus une métrique/);
+  });
+
+  it("aucune métrique principale reste valide — le hub retombe sur la première", () => {
+    expect(validateSummary(makeValidSummary()).metrics[0]?.primary).toBeUndefined();
+  });
+});
+
+describe("v1.3 — recommendation (la prochaine chose à faire)", () => {
+  const reco = {
+    label: "Verser 2 350 $ au CELI avant le 31 décembre",
+    why: "Le cashflow mensuel le permet et le plafond expire à la fin de l'année.",
+    href: "https://finance.hubperso.com/objectifs",
+  };
+
+  it("est rendue intacte", () => {
+    expect(validateSummary({ ...makeValidSummary(), recommendation: reco }).recommendation).toEqual(
+      reco,
+    );
+  });
+
+  it("accepte une recommandation sans why ni href", () => {
+    const nue = { label: "Rapprocher le relevé de septembre" };
+    expect(
+      validateSummary({ ...makeValidSummary(), recommendation: nue }).recommendation,
+    ).toEqual(nue);
+  });
+
+  it("rejette un label vide, un why trop long, un href non http", () => {
+    const base = makeValidSummary();
+    expect(() => validateSummary({ ...base, recommendation: { label: "" } })).toThrow(
+      /recommendation\.label/,
+    );
+    expect(() =>
+      validateSummary({ ...base, recommendation: { label: "ok", why: "x".repeat(141) } }),
+    ).toThrow(/recommendation\.why/);
+    expect(() =>
+      validateSummary({ ...base, recommendation: { label: "ok", href: "pas-une-url" } }),
+    ).toThrow(/recommendation\.href/);
+  });
+});
+
+describe("v1.3 — expectedMaxAgeSec (l'app déclare son propre rythme)", () => {
+  it("est rendu quand dataAsOf est présent", () => {
+    const summary = { ...makeValidSummary(), expectedMaxAgeSec: 3600 };
+    expect(validateSummary(summary).expectedMaxAgeSec).toBe(3600);
+  });
+
+  it("REJETTE un âge attendu sans dataAsOf — il ne mesurerait rien", () => {
+    // Le contrôle croisé de `verifierCoherences`. Sans lui, le producteur croirait sa
+    // fraîcheur surveillée et le hub n'aurait rien à comparer : un faux sentiment de
+    // surveillance, invisible des deux côtés.
+    const { dataAsOf: _ignore, ...sansDate } = makeValidSummary();
+    expect(() => validateSummary({ ...sansDate, expectedMaxAgeSec: 3600 })).toThrow(
+      /sans dataAsOf/,
+    );
+  });
+
+  it("rejette 0, un décimal et plus de 30 jours", () => {
+    const base = makeValidSummary();
+    for (const valeur of [0, -60, 1800.5, 2_592_001]) {
+      expect(() => validateSummary({ ...base, expectedMaxAgeSec: valeur })).toThrow(
+        /expectedMaxAgeSec/,
+      );
+    }
+  });
+
+  it("dataAsOf sans âge attendu reste valide (rétrocompatibilité v1.2)", () => {
+    const rendu = validateSummary(makeValidSummary());
+    expect(rendu.dataAsOf).toBeDefined();
+    expect(rendu.expectedMaxAgeSec).toBeUndefined();
+  });
+});
+
+describe("v1.3 — ce qu'un consommateur non re-pinné perd, et en silence", () => {
+  it("details disparaît à la lecture d'un consommateur épinglé avant la v1.3", () => {
+    // Même démonstration que pour `usage` avant la v1.1 : aucune erreur, juste un bloc
+    // absent. C'est pour ça que le HANDOVER dit quels dépôts re-pinner.
+    const surLeFil = validateSummary({ ...makeValidSummary(), details: sectionsValides });
+    expect(surLeFil.details).toBeDefined();
+
+    const consommateurAncien = HubSummarySchema.omit({ details: true }).strip();
+    const vu = consommateurAncien.parse(surLeFil) as Record<string, unknown>;
+    expect(vu.details).toBeUndefined();
+  });
+
+  it("HubSummarySchema reste un ZodObject : .omit() et .extend() fonctionnent encore", () => {
+    // Garde-fou de la décision écrite en tête du schéma : un `.superRefine` à la racine
+    // aurait retiré ces méthodes, et ce test est ce qui l'interdit.
+    expect(typeof HubSummarySchema.omit).toBe("function");
+    expect(typeof HubSummarySchema.extend).toBe("function");
+  });
+});
