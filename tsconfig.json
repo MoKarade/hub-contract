@@ -9,6 +9,11 @@
     "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
     "isolatedModules": true,
+    // [CI-IGNORE-SCRIPTS] Pour que `tests/cheminConsommateur.test.ts` lise le VRAI package.json
+    // au lieu d'en recopier les valeurs. Alternative écartée : ajouter `@types/node` pour un
+    // `readFileSync` — une devDependency de plus pour trois assertions, là où Vite et tsc savent
+    // déjà importer du JSON.
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,

@@ -33,6 +33,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # [CI-PERSIST-CREDS] `actions/checkout` v2+ écrit le GITHUB_TOKEN dans la config git du
+          # runner POUR TOUT LE RESTE DU RUN : n'importe quelle étape suivante, y compris une
+          # action tierce, peut le lire. Vérifié un par un : aucun workflow de ce dépôt ne fait
+          # de `git push` ni d'appel `gh`, donc aucun n'a besoin du jeton persisté.
+          persist-credentials: false
+          # ⚠️ ET C'EST CE `fetch-depth` QUI REND LE RETRAIT DU JETON SANS CONSÉQUENCE.
+          # L'étape « Le tag de la version courante existe-t-il ? » faisait un `git fetch --tags`
+          # — donc un appel réseau AUTHENTIFIÉ par le jeton qu'on vient de retirer. Le dépôt est
+          # public aujourd'hui (mesuré), donc un fetch anonyme passerait ; le jour où il passerait
+          # en privé, l'étape échouerait, et sa cause serait ici, six lignes plus haut, pas là-bas.
+          # `fetch-depth: 0` fait apporter l'historique ET les tags par le checkout lui-même, qui
+          # s'authentifie AVANT de jeter le jeton. Plus aucun réseau n'est nécessaire ensuite.
+          fetch-depth: 0
 
       # La convention de compte-rendu est une COPIE synchronisée de
       # claude-config/conventions/COMPTE-RENDU.md — un CLAUDE.md ne charge rien hors de son
@@ -47,10 +61,25 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      # `npm ci` déclenche le script `prepare` (donc `build`) : c'est voulu, c'est
-      # exactement ce que vit un consommateur qui installe depuis git.
+      # [CI-IGNORE-SCRIPTS] `--ignore-scripts` empêche les scripts d'installation des
+      # DÉPENDANCES de s'exécuter sur le runner — la surface par laquelle un paquet compromis
+      # lit les secrets du workflow. Mesuré ici avant d'être posé (18/09/2026, Node 22) :
+      # install OK, `dist/` ABSENT juste après (le `prepare` n'a pas tourné), binaire esbuild
+      # 0.27.7 fonctionnel — il vient de la dépendance OPTIONNELLE `@esbuild/linux-x64`, que
+      # npm installe quels que soient les scripts ; son `postinstall` ne fait que le vérifier.
+      # Puis build, 77 tests et typecheck verts.
+      #
+      # ⚠️ CE QUE CE DRAPEAU COÛTE, ET COMMENT C'EST RACHETÉ. Ce commentaire disait, à juste
+      # titre : « `npm ci` déclenche le script `prepare` (donc `build`) : c'est voulu, c'est
+      # exactement ce que vit un consommateur qui installe depuis git. » C'était le SEUL
+      # contrôle du chemin d'installation d'un consommateur, et `--ignore-scripts` le supprime
+      # (npm n'a aucun drapeau pour n'ignorer que les scripts des dépendances). Il n'est pas
+      # perdu pour autant, il est découpé en deux : l'étape « Build » ci-dessous prouve que la
+      # COMMANDE du `prepare` réussit, et `tests/cheminConsommateur.test.ts` prouve que
+      # `package.json` la DÉCLARE toujours en `prepare`. Les deux sont nécessaires : sans la
+      # seconde, retirer le `prepare` casserait les six consommateurs sans rien faire rougir.
       - name: Dépendances
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build
         run: npm run build
@@ -74,7 +103,9 @@ jobs:
       - name: Le tag de la version courante existe-t-il ?
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          git fetch --tags --quiet
+          # Pas de `git fetch --tags` ici : les tags sont déjà là (`fetch-depth: 0` au checkout),
+          # et le jeton a été retiré de la config git — un fetch dépendrait du fait que le dépôt
+          # soit public.
           version="$(node -p 'require("./package.json").version')"
           if git rev-parse "v$version" >/dev/null 2>&1; then
             echo "Tag v$version présent."
@@ -105,6 +136,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # [CI-PERSIST-CREDS] Idem : ce job ne fait que comparer deux chaînes, il ne pousse
+          # rien. Le `GITHUB_TOKEN` n'a aucune raison de rester lisible pour la suite du run.
+          persist-credentials: false
 
       # La règle de release du HANDOVER est « versions synchronisées entre package.json
       # et le tag git ». Elle était tenue à la main, et elle a déjà lâché : le tag

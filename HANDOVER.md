@@ -18,6 +18,39 @@
 | `1.2.0` | `ContractTooNewError` : la version est sondée **avant** la structure, donc « trop récent » cesse d'être confondu avec « invalide ». `contractVersion` passe de `z.literal(1)` à un entier ≥ 1. | ✅ existe |
 | `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ⬜ **à pousser par Marc** |
 
+## La chaîne de CI, et le seul verrou de L2 qui n'a PAS été posé ici
+
+Durcissement du 2026-09-18 (audit de remédiation, lot L2) :
+
+- Les **deux** étapes `actions/checkout` portent `persist-credentials: false`. Aucun workflow de
+  ce dépôt ne pousse ni n'appelle `gh` — vérifié étape par étape, pas supposé.
+- ⚠️ Le checkout du job `gate` porte aussi `fetch-depth: 0`, et **ce n'est pas décoratif** :
+  l'étape qui vérifie l'existence du tag faisait un `git fetch --tags`, donc un appel réseau
+  authentifié par le jeton qu'on vient de retirer. Le dépôt est public (mesuré), donc un fetch
+  anonyme passerait — mais le jour d'un passage en privé, l'étape échouerait et sa cause serait
+  dans le `with:` du checkout, pas dans l'étape qui rougit. Les tags arrivent donc par le
+  checkout, qui s'authentifie AVANT de jeter le jeton, et l'étape ne touche plus au réseau.
+- `npm ci --ignore-scripts`, mesuré avant d'être posé : install OK, binaire esbuild 0.27.7
+  fonctionnel (il vient de la dépendance **optionnelle** `@esbuild/linux-x64`, installée quels
+  que soient les scripts), build + 77 tests + typecheck verts.
+
+⚠️ **Ce que `--ignore-scripts` a coûté ici, et pourquoi c'est le seul dépôt où la question s'est
+posée.** Le `npm ci` de ce dépôt n'était pas un simple `npm ci` : son commentaire disait
+« c'est exactement ce que vit un consommateur qui installe depuis git », parce qu'il déclenchait
+le script `prepare` (donc `build`). C'était **le seul contrôle du chemin d'installation des six
+consommateurs**, et npm n'offre aucun moyen d'ignorer les scripts des DÉPENDANCES sans ignorer
+le sien. La garantie n'est pas abandonnée, elle est découpée en deux :
+
+1. l'étape `Build` prouve que la **commande** du `prepare` réussit ;
+2. `tests/cheminConsommateur.test.ts` prouve que `package.json` la **déclare** toujours en
+   `prepare`, et que `main`/`module`/`types` pointent bien dans `dist/`.
+
+Les deux sont nécessaires : sans la seconde, retirer le `prepare` casserait les six apps
+(une installation depuis git ne livre aucun `dist/`) sans rien faire rougir. Sa discrimination
+est prouvée par trois perturbations séparées, un rouge chacune — dont celle qui montre que le
+cas « `build` déclaré » n'est pas décoratif : le retirer laisse le cas « `prepare` lance build »
+VERT, puisqu'il ne lit qu'une déclaration.
+
 ## ⬜ Le tag `v1.3.0` reste à pousser
 
 ⚠️ **Une session Claude ne peut pas pousser de tag.** Le proxy git rend `HTTP 403` sur les
