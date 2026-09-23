@@ -70,9 +70,21 @@ Ce qui garde le dispositif : l'étape CI « dist/ commité = sortie du build » 
 `.gitattributes` (sources et `dist/` en LF, sinon un build Windows diffère par les `.map`).
 Le `prepare` reste : là où les scripts tournent (Vercel), il recompile le même `dist/`.
 
-⚠️ À surveiller : npm 12 rend les dépendances git **opt-in** (`allow-git`, défaut `none`).
-Tant que Node 24 embarque npm 11, rien à faire ; au passage à npm 12, chaque consommateur
-aura besoin de `allow-git=root` dans son `.npmrc`.
+⚠️ **npm 12** rend les dépendances git **opt-in** (`allow-git`, défaut `none`) et coupe les scripts
+d'installation par défaut. Mesuré le 23/09/2026 sur JobAI (v1.3.1, `npm ci --ignore-scripts`) :
+
+| npm | sans `.npmrc` | `allow-git=root` |
+|---|---|---|
+| 11.12.1 (Node 24.15, poste de Marc) | ✅ | ❌ refuse la dépendance — bogue de `root` sur lockfile |
+| 11.20.0 | ✅ | ✅ |
+| 12.1.0 | ❌ « Refusing to fetch » | ✅ |
+
+Conséquences : **ne PAS poser `allow-git=root` tant qu'un npm < 11.20 peut tourner** (poste, Vercel) —
+il casserait l'installation aujourd'hui. Aucun Node ne livre npm 12 à ce jour (Node 24.21 → npm
+11.19.0, Node 26.10 → 11.19.1). Le jour où un Node livre npm 12 : ajouter `allow-git=root` dans le
+`.npmrc` de chaque consommateur (dossier du `package.json` qui déclare le contrat). Le `dist/`
+commité règle déjà l'autre moitié (scripts coupés = plus de `prepare`). Tous les consommateurs
+sont sur v1.3.1 depuis le 23/09/2026 (DriveAI `app/` et app-template compris).
 
 ## Comment tagger une release
 
