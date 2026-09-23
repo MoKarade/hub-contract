@@ -3,3 +3,8 @@ coverage/
 *.log
 *.tsbuildinfo
 .DS_Store
+
+# Portes qualité de l'Atelier (S6) — sorties de mesure, jamais committées
+reports/
+.stryker-tmp/
+qualite/rapport.json

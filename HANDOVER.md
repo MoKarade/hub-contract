@@ -136,3 +136,24 @@ consommés par le hub : une app re-pinnée avant le hub publie `details` dans le
 le strippe sans rien dire — donc on croit avoir livré quelque chose qui ne s'affiche nulle
 part. Dans l'autre sens, un hub re-pinné avant les apps affiche simplement « pas de détail
 publié », ce qui est vrai.
+
+## Portes qualité de l'Atelier (S6, 23/09/2026)
+
+Contrôles automatiques en CI, jobs **Qualité** et **Sécurité** : la fusion automatique les attend.
+Principe du **cliquet** : `qualite/seuils.json` fige l'état du jour de la mise en place ; rien ne peut
+reculer. `npm run portes` mesure en local, `npm run portes:maj` resserre après une amélioration.
+
+| Porte | Seuil de départ |
+|---|---|
+| Typage (erreurs) | ≤ 0 |
+| Tests en échec | ≤ 0 |
+| Couverture `src/` (% lignes) | ≥ 100.0 |
+| Couverture globale (% lignes) | ≥ 100.0 |
+| Couverture globale (% branches) | ≥ 93.7 |
+| Code mort (knip) | ≤ 0 |
+| Règles d'architecture (dependency-cruiser) | ≤ 0 |
+
+Sécurité : gitleaks sur l'historique qui serait fusionné (HEAD) + Semgrep (TypeScript, React, Next.js, secrets, OWASP), bloquants.
+Pas de porte lint : ce dépôt n'a pas d'ESLint (`config.lint` vide). Dependabot : actions seulement
+(une montée de tsup/TypeScript change dist/, que Dependabot ne sait pas reconstruire ; zod = le contrat) —
+les alertes de sécurité restent actives. Voir `.github/dependabot.yml`.

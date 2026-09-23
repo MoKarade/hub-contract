@@ -41,6 +41,8 @@
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "portes": "node qualite/portes.mjs",
+    "portes:maj": "node qualite/portes.mjs --maj",
     "prepare": "npm run build"
   },
   "engines": {
@@ -50,6 +52,9 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.7",
+    "dependency-cruiser": "^18.4.0",
+    "knip": "^6.38.0",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0",
     "vitest": "^3.0.0"
