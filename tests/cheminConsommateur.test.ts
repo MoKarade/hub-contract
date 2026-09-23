@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import pkg from "../package.json";
 
+// [DIST-VERSIONNE] Depuis la v1.3.1, dist/ est commité : npm 11 (Node 24) ne lance plus le
+// `prepare` d'une dépendance git sous `--ignore-scripts`, donc les CI des consommateurs ne
+// recevaient plus aucun dist/. Le `prepare` reste utile là où les scripts tournent (Vercel) et
+// reste gardé ici ; la présence et la fraîcheur de dist/ sont gardées par la CI (étape
+// « dist/ commité = sortie du build »). Le texte ci-dessous décrit l'état d'avant la v1.3.1.
+//
 // [CI-IGNORE-SCRIPTS] Ce fichier garde une garantie que la CI vérifiait AUTREFOIS par accident.
 //
 // Aucun consommateur n'installe ce paquet depuis un registre : les six apps du hub font

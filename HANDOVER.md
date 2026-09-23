@@ -2,8 +2,9 @@
 
 ## État du repo
 
-- `package.json` annonce **`1.3.0`**. `CONTRACT_VERSION` reste **`1`** : les quatre ajouts de
-  la v1.3 sont optionnels, donc additifs (règle d'évolution n°2 du `CLAUDE.md`).
+- `package.json` annonce **`1.3.1`** (même contrat que `1.3.0`, `dist/` commité — voir plus bas).
+  `CONTRACT_VERSION` reste **`1`** : les quatre ajouts de la v1.3 sont optionnels, donc
+  additifs (règle d'évolution n°2 du `CLAUDE.md`).
 - Contrat complet dans `src/index.ts` ; endpoint partagé dans `src/endpoint.ts`.
 - Pour le nombre de tests et le détail des champs, voir la source qui fait foi — `npm test` et
   `README.md`. **Aucun chiffre au présent n'est recopié ici** : le précédent (« 38 tests »)
@@ -16,7 +17,8 @@
 | `1.0.0` | Contrat de base : `HubMetric` / `HubAlert` / `HubAction` / `HubSummary`, `validateSummary`, `buildingSummary`. | ✅ existe |
 | `1.1.0` | Bloc `usage` (coûts & quotas), optionnel. | ✅ existe, pointe `3bbbf19` (2026-08-20) |
 | `1.2.0` | `ContractTooNewError` : la version est sondée **avant** la structure, donc « trop récent » cesse d'être confondu avec « invalide ». `contractVersion` passe de `z.literal(1)` à un entier ≥ 1. | ✅ existe |
-| `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ⬜ **à pousser par Marc** |
+| `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ✅ existe |
+| `1.3.1` | Contrat identique à `1.3.0`. `dist/` commité : sans lui, une CI en Node 24 + `--ignore-scripts` ne reçoit aucun `dist/`. | poussé après le merge |
 
 ## La chaîne de CI, et le seul verrou de L2 qui n'a PAS été posé ici
 
@@ -51,17 +53,26 @@ est prouvée par trois perturbations séparées, un rouge chacune — dont celle
 cas « `build` déclaré » n'est pas décoratif : le retirer laisse le cas « `prepare` lance build »
 VERT, puisqu'il ne lit qu'une déclaration.
 
-## ⬜ Le tag `v1.3.0` reste à pousser
+## `dist/` commité depuis v1.3.1 — pourquoi
 
-⚠️ **Une session Claude ne peut pas pousser de tag.** Le proxy git rend `HTTP 403` sur les
-refs de tag (vérifié le 2026-08-20, pas déduit), et les outils GitHub disponibles en session
-sont en lecture seule pour les tags et les releases. C'est une commande sur le poste de Marc,
-ou l'écran *Releases* de GitHub.
+Mesuré le 23/09/2026, au passage de tous les dépôts à Node 24 : **npm 11 ne lance plus le
+`prepare` d'une dépendance git quand l'install tourne en `--ignore-scripts`** (npm 10 le
+lançait quand même). Les CI des consommateurs font `npm ci --ignore-scripts` : leur
+`node_modules/@mokarade/hub-contract` ne contenait plus que `package.json` et `README.md`, et
+six gates sont tombés sur `Cannot find module '@mokarade/hub-contract'`.
 
-Tant que le tag n'existe pas, **aucun consommateur ne peut consommer la v1.3** : les cinq apps
-et le hub restent sur leur pin actuel et ignorent silencieusement les nouveaux champs. C'est
-le comportement voulu, mais ça veut dire que le tag est la porte d'entrée de tout le reste du
-chantier.
+Options écartées : réautoriser les scripts dans les CI (rouvre la surface que
+`[CI-IGNORE-SCRIPTS]` ferme), épingler npm 10 (repousse le problème, npm 12 durcit encore),
+publier sur un registre (compte et jeton à gérer pour un paquet privé à l'usage).
+
+Ce qui garde le dispositif : l'étape CI « dist/ commité = sortie du build » (rebuild puis
+`git status` vide, et chaque point d'entrée de `package.json` suivi par git) et
+`.gitattributes` (sources et `dist/` en LF, sinon un build Windows diffère par les `.map`).
+Le `prepare` reste : là où les scripts tournent (Vercel), il recompile le même `dist/`.
+
+⚠️ À surveiller : npm 12 rend les dépendances git **opt-in** (`allow-git`, défaut `none`).
+Tant que Node 24 embarque npm 11, rien à faire ; au passage à npm 12, chaque consommateur
+aura besoin de `allow-git=root` dans son `.npmrc`.
 
 ## Comment tagger une release
 
@@ -95,6 +106,8 @@ git push origin v1.3.0
 | DriveAI | `app/` (devDependency) | idem. ⚠️ `api/` est **zéro-dépendance par construction** et *inline* la forme du contrat : il ne se re-pinne pas, il se met à jour à la main, et c'est le test de `app/` qui verrouille la correspondance. |
 | BatchChef | `web/` (`lib/hubSummary.ts`) | idem |
 | JobAI | racine | idem |
+| MemoryAI | racine | idem |
+| CarAI | racine | idem |
 | app-template | template des futures apps | idem |
 
 *(BatchChef et JobAI manquaient à cette table — trouvé par l'audit de dette inter-dépôts de
