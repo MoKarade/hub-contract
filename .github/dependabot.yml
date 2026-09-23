@@ -1,0 +1,15 @@
+# Mises à jour proposées automatiquement (porte sécurité de l'Atelier, S6) — ACTIONS SEULEMENT.
+#
+# Pas de mises à jour npm de version ici, volontairement : chaque montée de tsup ou de TypeScript
+# change la sortie du build, donc dist/ (commité, [DIST-VERSIONNE]) — une PR Dependabot ne peut pas
+# le reconstruire et resterait rouge à vie sur « dist/ commité = sortie du build ». Et zod est le
+# contrat lui-même : sa majeure est une décision de contrat (tous les consommateurs), pas une
+# montée de version. Les alertes de SÉCURITÉ de Dependabot, elles, restent actives.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    groups:
+      actions:
+        patterns: ["*"]
