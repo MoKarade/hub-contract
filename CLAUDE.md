@@ -5,7 +5,9 @@ ne contient QUE le contrat : schémas Zod, types TypeScript, deux helpers
 (`validateSummary`, `buildingSummary`), tests, docs.
 
 **Stack** : TypeScript · Zod 3 · tsup · Vitest.
-**Distribution** : installé depuis GitHub par tag, jamais publié sur npm.
+**Distribution** : installé depuis GitHub par tag, jamais publié sur npm. **`dist/` est commité**
+(depuis v1.3.1) : toute modification de `src/` se committe avec son `dist/` reconstruit, la CI
+rougit sinon.
 
 > 📐 Structure de ce fichier : [convention commune aux huit dépôts](https://github.com/MoKarade/claude-config/blob/main/conventions/STRUCTURE-DEPOT.md).
 > Les sections 6 et 7 y sont **omises** : ce dépôt ne se déploie pas et ne s'intègre à
@@ -125,7 +127,7 @@ place redevient huit conventions différentes en trois mois.
 
 ## 11. Procédure de release
 
-1. Le changement est mergé sur `main`, gate vert.
+1. Le changement est mergé sur `main`, gate vert — `dist/` reconstruit et commité avec lui.
 2. `package.json` porte la bonne version — **majeure** si breaking (avec bump de
    `CONTRACT_VERSION` dans `src/index.ts`), **mineure** si additif optionnel.
 3. **Marc pousse le tag annoté** `vX.Y.Z` (une session ne peut pas, cf. §3) :
@@ -138,5 +140,5 @@ place redevient huit conventions différentes en trois mois.
 4. `HANDOVER.md` note **quels consommateurs re-pinner**. Ils le font à leur rythme : tant
    qu'un dépôt n'est pas re-pinné il reste sur l'ancien contrat, et **c'est voulu**.
 
-**Les six consommateurs** : Hubperso (dashboard) · FinanceAI (`mcp/`) · DriveAI (`api/`) ·
-BatchChef (`web/`) · JobAI (racine) · app-template.
+**Les consommateurs** : Hubperso (dashboard) · FinanceAI (`mcp/`) · DriveAI (`api/`) ·
+BatchChef (`web/`) · JobAI (racine) · MemoryAI · CarAI · app-template.

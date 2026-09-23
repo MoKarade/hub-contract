@@ -1,0 +1,5 @@
+# [DIST-VERSIONNE] dist/ est commité et la CI (Linux) exige qu'il soit identique à
+# `npm run build`. Les .map embarquent le texte des sources : une copie Windows en CRLF
+# produirait un dist/ différent. On fige donc les deux en LF, quel que soit le poste.
+src/** text eol=lf
+dist/** text eol=lf

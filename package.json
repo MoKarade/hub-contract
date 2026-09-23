@@ -1,6 +1,6 @@
 {
   "name": "@mokarade/hub-contract",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Contrat d'intégration hub perso <-> apps : types TypeScript + schémas Zod du endpoint GET /hub/summary",
   "license": "UNLICENSED",
   "repository": {

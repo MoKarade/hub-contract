@@ -84,6 +84,41 @@ jobs:
       - name: Build
         run: npm run build
 
+      # [DIST-VERSIONNE] Depuis la v1.3.1, dist/ est COMMITÉ. Raison : npm 11 (livré avec
+      # Node 24) ne lance plus le `prepare` d'une dépendance git quand l'install tourne en
+      # `--ignore-scripts` — ce que font les CI des consommateurs. Mesuré le 23/09/2026 :
+      # node_modules/@mokarade/hub-contract ne contenait que package.json et README.md, et
+      # six gates sont tombés sur « Cannot find module '@mokarade/hub-contract' ».
+      # Un dist/ commité ne vaut que s'il est EXACTEMENT la sortie du build de ce commit :
+      # le build ci-dessus vient de le régénérer (tsup `clean: true`), la moindre différence
+      # est donc une source modifiée sans dist/ reconstruit.
+      - name: dist/ commité = sortie du build
+        run: |
+          if [ -n "$(git status --porcelain -- dist)" ]; then
+            git status --short -- dist
+            echo "::error::dist/ commité ne correspond pas à « npm run build ». Reconstruire et committer dist/ (sources en LF : voir .gitattributes)."
+            exit 1
+          fi
+          # Et le cas que `git status` ne voit pas : dist/ remis dans .gitignore et retiré de
+          # l'index. Tout redeviendrait « propre » ici pendant que les consommateurs perdent
+          # tout. Chaque point d'entrée déclaré dans package.json doit donc être SUIVI par git.
+          node -e '
+            const p = require("./package.json");
+            const { execSync } = require("child_process");
+            const cibles = new Set([p.main, p.module, p.types]);
+            (function parcourir(o) {
+              for (const v of Object.values(o)) typeof v === "string" ? cibles.add(v) : parcourir(v);
+            })(p.exports);
+            cibles.delete("./package.json");
+            const suivis = new Set(execSync("git ls-files -- dist").toString().split("\n"));
+            const manquants = [...cibles].map((c) => c.replace(/^\.\//, "")).filter((c) => !suivis.has(c));
+            if (manquants.length > 0) {
+              console.error("::error::Points d entrée publiés mais non commités :", manquants.join(", "));
+              process.exit(1);
+            }
+            console.log(`dist/ à jour, ${cibles.size} points d entrée commités.`);
+          '
+
       - name: Tests
         run: npm run test
 

@@ -25,13 +25,15 @@ flowchart LR
 ## Installation
 
 ```bash
-npm install github:MoKarade/hub-contract#v1.2.0
+npm install github:MoKarade/hub-contract#v1.3.1
 ```
 
 Pas de publication npm : l'installation se fait directement depuis GitHub.
-Le script `"prepare": "npm run build"` est exécuté par npm lors d'une install
-git (devDependencies incluses), ce qui compile `dist/` à la volée. Seul `dist/`
-est livré dans `node_modules`.
+Depuis `v1.3.1`, `dist/` est **commité** : l'install fonctionne même en `--ignore-scripts`
+(npm 11 / Node 24 n'y lance plus le `prepare` d'une dépendance git). Là où les scripts
+tournent, `"prepare": "npm run build"` recompile le même `dist/`. Seul `dist/` est livré
+dans `node_modules`. **Pinner `v1.3.1` ou plus** : `v1.3.0` et antérieurs ne livrent aucun
+`dist/` à une CI en Node 24.
 
 **Toujours pinner une référence immuable**, jamais une branche : le contrat ne bouge que
 par release explicite.
@@ -48,12 +50,7 @@ le plus discret de ce dépôt, et une instruction d'installation périmée suffi
 | `v1.1.0` | Bloc `usage` (coûts & quotas). | Tout suivi de coût. |
 | `v1.2.0` | `ContractTooNewError` (version sondée avant la structure). | Le bon diagnostic : un summary trop récent s'affiche « invalide », ce qui accuse l'app au lieu du hub. |
 | `v1.3.0` | `details`, `primary`, `recommendation`, `expectedMaxAgeSec`. | La vue détaillée, la désignation du chiffre principal, la recommandation, et toute détection de donnée figée. |
-
-> ⚠️ **`v1.3.0` n'est pas encore taggué au moment où ces lignes sont écrites** — une session
-> Claude ne peut pas pousser de tag (cf. `CLAUDE.md` §3). La commande ci-dessus pointe donc le
-> dernier tag qui **existe**. Dès que le tag est poussé (procédure dans `HANDOVER.md`), y
-> remplacer `v1.2.0` par `v1.3.0` : un exemple d'installation qui pointe un tag périmé est
-> exactement ce qui a fait perdre `usage` à des apps en 2026.
+| `v1.3.1` | Même contrat que `v1.3.0`, `dist/` commité. | L'installation elle-même sous Node 24 + `--ignore-scripts` (module introuvable). |
 
 Fonctionne en CommonJS (`require`), en ESM (`import`) et dans un projet Vite —
 l'exports map fournit les deux formats + les déclarations TypeScript.
