@@ -2,7 +2,7 @@
 
 ## État du repo
 
-- `package.json` annonce **`1.3.1`** (même contrat que `1.3.0`, `dist/` commité — voir plus bas).
+- `package.json` annonce **`1.4.0`** (v1.3.1 + le sous-chemin `/session`, `dist/` commité — voir plus bas).
   `CONTRACT_VERSION` reste **`1`** : les quatre ajouts de la v1.3 sont optionnels, donc
   additifs (règle d'évolution n°2 du `CLAUDE.md`).
 - Contrat complet dans `src/index.ts` ; endpoint partagé dans `src/endpoint.ts`.
@@ -19,6 +19,7 @@
 | `1.2.0` | `ContractTooNewError` : la version est sondée **avant** la structure, donc « trop récent » cesse d'être confondu avec « invalide ». `contractVersion` passe de `z.literal(1)` à un entier ≥ 1. | ✅ existe |
 | `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ✅ existe |
 | `1.3.1` | Contrat identique à `1.3.0`. `dist/` commité : sans lui, une CI en Node 24 + `--ignore-scripts` ne reçoit aucun `dist/`. | poussé après le merge |
+| `1.4.0` | Nouveau sous-chemin `@mokarade/hub-contract/session` : `verifierSession`, lecture de la session partagée signée ES256 (chantier auth-asym). Additif : `/index` inchangé, `CONTRACT_VERSION` reste `1`. | à poser par Marc après fusion |
 
 ## La chaîne de CI, et le seul verrou de L2 qui n'a PAS été posé ici
 
@@ -128,6 +129,11 @@ JobAI, 2026-07-29. Toute nouvelle app consommatrice s'ajoute ici ET dans la list
 
 Un consommateur non re-pinné reste sur l'ancien tag : comportement voulu, aucune urgence tant
 que le contrat qu'il utilise est encore servi par les apps.
+
+### Re-pin pour la v1.4.0 (`/session`) — qui, et pas d'urgence
+
+Concernés : **Hubperso, JobAI, CarAI, MemoryAI, BatchChef** — les 5 apps du chantier auth-asym, seules à importer `@mokarade/hub-contract/session`. Ils re-pinnent **à leur rythme** : ce n'est 
+pas obligatoire tout de suite, un dépôt non re-pinné reste sur son tag actuel (`/index` est inchangé). Les autres consommateurs (FinanceAI, DriveAI, app-template) n'ont rien à faire.
 
 ### Ordre de re-pin pour la v1.3, et pourquoi il compte
 
