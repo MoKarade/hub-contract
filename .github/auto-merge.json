@@ -1,0 +1,30 @@
+{
+  "_doc": "Adoption du kit auto-merge 1.10.0 pour hub-contract (première installation, 2026-09-29). controles_requis : les 3 noms exacts des jobs de .github/workflows/ci.yml. chemins_label_validation : src/session.ts + tests/session.test.ts (module crypto de session ajouté par PR#19, surface de sécurité) et package.json + tsup.config.ts (exports/peerDependencies et config de build : un dist/ qui ne correspond pas au src publié serait une porte dérobée classique pour un paquet consommé par 6 apps). chemins_interdits : dist/** en plus des motifs génériques (build généré, jamais édité à la main hors d'un build automatisé — voir CI 'dist/ commité = sortie du build'). securite_login/securite_user_id : compte GitHub App dédié de pole-securite, partagé par les dépôts de l'Atelier (déjà utilisé ce soir sur BatchChef, Hubperso, DriveAI, MemoryAI, CarAI, JobAI).",
+  "branche_base": "main",
+  "controles_requis": [
+    "Gate (build · tests · typecheck)",
+    "Qualité (lint · couverture · code mort · architecture)",
+    "Sécurité (secrets · analyse statique)"
+  ],
+  "controles_non_bloquants": [],
+  "chemins_interdits": [
+    "**/.env*",
+    "**/*.pem",
+    "**/secrets/**",
+    "dist/**"
+  ],
+  "chemins_attestables": [
+    "dist/**"
+  ],
+  "chemins_label_validation": [
+    "src/session.ts",
+    "tests/session.test.ts",
+    "package.json",
+    "tsup.config.ts"
+  ],
+  "chemins_validation_visuelle": [],
+  "securite_login": "atelier-securite-marc[bot]",
+  "securite_user_id": 334232309,
+  "carence_dependabot_jours": 3,
+  "frein_fusions_par_heure": 6
+}
