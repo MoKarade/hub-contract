@@ -13,6 +13,9 @@
     "**/secrets/**",
     "dist/**"
   ],
+  "chemins_attestables": [
+    "dist/**"
+  ],
   "chemins_label_validation": [
     "src/session.ts",
     "tests/session.test.ts",
