@@ -397,3 +397,10 @@ qui est propre à Node et absent du runtime Edge.
 
 ⚠️ Inutilisable depuis un `api/` déclaré « zéro dépendance npm » (le broker DriveAI). Ce n'est
 pas un oubli : cette contrainte-là est un choix de ce dépôt-là.
+
+## Session partagée du hub (`@mokarade/hub-contract/session`)
+
+Lecture seule du cookie de session signé ES256 par Hubperso : `verifierSession(cookie, { keys: [...] })`
+rend `{ email, sub?, emisLe, expireLe }` ou `null` (jamais d'exception). Algorithme figé à ES256 (ni `none`,
+ni HS256), `kid` obligatoire, `exp`/`iat` obligatoires, émetteur `hubperso.com`, tolérance d'horloge 30 s.
+Aucune clé privée ici : les satellites ne peuvent pas fabriquer de session. Demande `jose` (^6) côté app.
