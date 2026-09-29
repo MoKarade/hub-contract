@@ -32,6 +32,16 @@
         "types": "./dist/endpoint.d.ts",
         "default": "./dist/endpoint.js"
       }
+    },
+    "./session": {
+      "import": {
+        "types": "./dist/session.d.mts",
+        "default": "./dist/session.mjs"
+      },
+      "require": {
+        "types": "./dist/session.d.ts",
+        "default": "./dist/session.js"
+      }
     }
   },
   "files": [
@@ -54,9 +64,18 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.7",
     "dependency-cruiser": "^18.4.0",
+    "jose": "^6.2.12",
     "knip": "^6.38.0",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0",
     "vitest": "^3.0.0"
+  },
+  "peerDependencies": {
+    "jose": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "jose": {
+      "optional": true
+    }
   }
 }

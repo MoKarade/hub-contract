@@ -19,6 +19,9 @@ rougit sinon.
 - **Aucune dépendance runtime autre que `zod` (^3).** `tsup`, `vitest` et `typescript`
   restent en devDependencies. Ce paquet est installé par six consommateurs : chaque
   dépendance ajoutée est ajoutée six fois.
+  Exception encadrée (sous-chemin `/session`, vérification de la session partagée) : `jose` est une
+  **peerDependency optionnelle**, pas une dépendance runtime. Le contrat (`.`) et `/endpoint` n'en
+  importent rien ; seul `@mokarade/hub-contract/session` l'utilise, et les apps qui le lisent l'ont déjà.
 - **Pas de logique métier, pas de composant UI, pas de fetch.** Un contrat décrit une forme ;
   il ne fait rien.
 - **Aucun secret, aucune donnée.** Le jeton `x-hub-token` vit dans les variables
