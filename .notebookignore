@@ -1,0 +1,8 @@
+# Exclusions propres à hub-contract (en plus de la config centrale).
+# dist/ : sortie de build tsup, commitée depuis v1.3.1, mais copie générée de src/.
+dist/
+# Déclarations et bundles générés, au cas où ils apparaîtraient hors de dist/.
+*.d.mts
+*.mjs.map
+# Seuils du cliquet qualité : chiffres régénérés par « npm run portes:maj », sans contenu métier.
+qualite/seuils.json
