@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "repo_label": "hub-contract",
+  "comment": "Carte hub-contract : petit dépôt (47 fichiers), 4 sources par couche (contrat, tests et qualité, CI et configuration, docs). Le premier motif qui correspond gagne.",
+  "sources": [
+    { "name": "01_Contrat_Schemas_Types", "title": "Contrat : schémas Zod, types et endpoint", "include": ["src/**"] },
+    { "name": "02_Tests_et_Qualite", "title": "Tests et portes qualité", "include": ["tests/**", "qualite/**"] },
+    { "name": "03_CI_Config_Outils", "title": "CI, configuration et outils",
+      "include": [".github/**", "package.json", "tsconfig.json", "knip.json", "tsup.config.ts", "vitest.config.ts",
+                  ".dependency-cruiser.cjs", ".nvmrc", ".gitattributes", ".gitignore"] },
+    { "name": "04_Docs_Handover", "title": "Documentation et passation", "include": ["CLAUDE.md", "HANDOVER.md", "docs/**"] }
+  ],
+  "fallback": "99_Autres",
+  "master": { "enabled": true, "include": ["src/**", "README.md"], "exclude": [] },
+  "limits": { "max_words_per_doc": 400000, "max_chars_per_doc": 900000, "max_json_bytes": 40000 }
+}
