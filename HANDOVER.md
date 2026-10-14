@@ -1,5 +1,25 @@
 # HANDOVER — hub-contract
 
+## État au 14/10/2026
+
+- **Ce qui tourne** : le paquet est en `1.4.0` (`package.json`), `CONTRACT_VERSION = 1`. Tags
+  présents sur `origin` (mesuré par `git ls-remote --tags origin` le 14/10) : `v1.0.0`,
+  `v1.1.0`, `v1.3.0`, `v1.3.1`, `v1.4.0`. **Il n'existe pas de tag `v1.2.0`** : le contenu de
+  la 1.2.0 (`ContractTooNewError`, `/endpoint`) n'est livré qu'à partir de `v1.3.0`.
+- **Livré depuis la dernière mise à jour** (d'après `git log`) : `v1.4.0` taguée sur `0c3309d`
+  (sous-chemin `/session`, #19/#21) ; gitleaks 8.28.0 → 8.30.1 (#23) ; README pointé sur
+  `v1.4.0` (#25).
+- **Fusion** : `.github/workflows/fusion-auto.yml` arme la fusion automatique native de GitHub
+  (`gh pr merge --auto --squash`) sur toute PR non brouillon ; GitHub fusionne quand les
+  contrôles obligatoires sont verts. Pas de `CODEOWNERS` dans ce dépôt au 14/10.
+- **Pins des consommateurs au 14/10** (lus dans leurs `package.json`) : `v1.4.0` pour CarAI,
+  JobAI, MemoryAI ; `v1.3.1` pour Hubperso, FinanceAI (racine), DriveAI (`app/`), BatchChef
+  (`web/`), app-template. Hubperso et BatchChef n'ont pas encore re-pinné sur `v1.4.0`
+  (aucun import de `/session` chez eux au 14/10).
+- **En cours** : rien dans ce dépôt.
+- **Gel décidé par Marc le 14/10 : aucun nouveau travail sur les apps tant que le plan de
+  réduction du temps des PR est en cours.**
+
 ## État du repo
 
 - `package.json` annonce **`1.4.0`** (v1.3.1 + le sous-chemin `/session`, `dist/` commité — voir plus bas).
@@ -16,10 +36,10 @@
 |---|---|---|
 | `1.0.0` | Contrat de base : `HubMetric` / `HubAlert` / `HubAction` / `HubSummary`, `validateSummary`, `buildingSummary`. | ✅ existe |
 | `1.1.0` | Bloc `usage` (coûts & quotas), optionnel. | ✅ existe, pointe `3bbbf19` (2026-08-20) |
-| `1.2.0` | `ContractTooNewError` : la version est sondée **avant** la structure, donc « trop récent » cesse d'être confondu avec « invalide ». `contractVersion` passe de `z.literal(1)` à un entier ≥ 1. | ✅ existe |
-| `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ✅ existe |
-| `1.3.1` | Contrat identique à `1.3.0`. `dist/` commité : sans lui, une CI en Node 24 + `--ignore-scripts` ne reçoit aucun `dist/`. | poussé après le merge |
-| `1.4.0` | Nouveau sous-chemin `@mokarade/hub-contract/session` : `verifierSession`, lecture de la session partagée signée ES256 (chantier auth-asym). Additif : `/index` inchangé, `CONTRACT_VERSION` reste `1`. | à poser par Marc après fusion |
+| `1.2.0` | `ContractTooNewError` : la version est sondée **avant** la structure, donc « trop récent » cesse d'être confondu avec « invalide ». `contractVersion` passe de `z.literal(1)` à un entier ≥ 1. | ❌ **jamais tagué** (absent d'`origin` au 14/10) — contenu livré à partir de `v1.3.0` |
+| `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ✅ existe (tag léger, pointe `bd47d5f`) |
+| `1.3.1` | Contrat identique à `1.3.0`. `dist/` commité : sans lui, une CI en Node 24 + `--ignore-scripts` ne reçoit aucun `dist/`. | ✅ existe, pointe `625bd11` |
+| `1.4.0` | Nouveau sous-chemin `@mokarade/hub-contract/session` : `verifierSession`, lecture de la session partagée signée ES256 (chantier auth-asym). Additif : `/index` inchangé, `CONTRACT_VERSION` reste `1`. | ✅ existe (tag léger, pointe `0c3309d`) |
 
 ## La chaîne de CI, et le seul verrou de L2 qui n'a PAS été posé ici
 
@@ -81,11 +101,11 @@ d'installation par défaut. Mesuré le 23/09/2026 sur JobAI (v1.3.1, `npm ci --i
 | 12.1.0 | ❌ « Refusing to fetch » | ✅ |
 
 Conséquences : **ne PAS poser `allow-git=root` tant qu'un npm < 11.20 peut tourner** (poste, Vercel) —
-il casserait l'installation aujourd'hui. Aucun Node ne livre npm 12 à ce jour (Node 24.21 → npm
+il casserait l'installation aujourd'hui. Aucun Node ne livrait npm 12 au 23/09/2026 (Node 24.21 → npm
 11.19.0, Node 26.10 → 11.19.1). Le jour où un Node livre npm 12 : ajouter `allow-git=root` dans le
 `.npmrc` de chaque consommateur (dossier du `package.json` qui déclare le contrat). Le `dist/`
 commité règle déjà l'autre moitié (scripts coupés = plus de `prepare`). Tous les consommateurs
-sont sur v1.3.1 depuis le 23/09/2026 (DriveAI `app/` et app-template compris).
+étaient sur v1.3.1 au 23/09/2026 (DriveAI `app/` et app-template compris) ; pins actuels : section « État au 14/10/2026 ».
 
 ## Comment tagger une release
 
@@ -93,29 +113,31 @@ sont sur v1.3.1 depuis le 23/09/2026 (DriveAI `app/` et app-template compris).
 # 1. S'assurer que tout passe
 npm run build && npm run test && npm run typecheck
 
-# 2. La version de package.json est déjà 1.3.0 (commitée avec le changement).
+# 2. La version de package.json est déjà X.Y.Z (commitée avec le changement).
 #    Règle : breaking → bump CONTRACT_VERSION dans src/index.ts + version MAJEURE
 #            additif optionnel → version MINEURE, CONTRACT_VERSION inchangé
 
 # 3. Tag annoté + push, depuis main à jour
 git fetch origin main && git checkout main && git pull
-git tag -a v1.3.0 -m "hub-contract v1.3.0 — details, primary, recommendation, expectedMaxAgeSec"
-git push origin v1.3.0
+git tag -a vX.Y.Z <sha> -m "hub-contract vX.Y.Z — <résumé>"
+git push origin vX.Y.Z
 ```
 
 ### Après le push du tag, deux gestes qui ne s'oublient pas
 
-1. **`README.md` § Installation** : remplacer `#v1.2.0` par `#v1.3.0` dans la commande
-   d'exemple. Un exemple qui pointe un tag périmé est ce qui a fait perdre `usage` à des apps
+1. **`README.md` § Installation** : remplacer l'ancien tag par `#vX.Y.Z` dans la commande
+   d'exemple, et ajouter la ligne `vX.Y.Z` au tableau « Ce que chaque tag apporte ».
+   Vérifier ensuite que le tag existe VRAIMENT (`git ls-remote --tags origin`) : la ligne
+   `1.2.0` a été cochée « existe » sans que le tag ait jamais été poussé. Un exemple qui pointe un tag périmé est ce qui a fait perdre `usage` à des apps
    en 2026 — les clés inconnues sont strippées, donc la perte est silencieuse.
-2. **Cocher la ligne `1.3.0`** du tableau ci-dessus.
+2. **Cocher la ligne `X.Y.Z`** du tableau ci-dessus.
 
 ## Consommateurs à re-pinner après chaque release
 
 | Consommateur | Où | Action |
 |---|---|---|
 | Hubperso | dashboard `hubperso.com` | `npm install github:MoKarade/hub-contract#vX.Y.Z` |
-| FinanceAI | `mcp/` | idem |
+| FinanceAI | racine (`package.json`, utilisé par `mcp/`) | idem |
 | DriveAI | `app/` (devDependency) | idem. ⚠️ `api/` est **zéro-dépendance par construction** et *inline* la forme du contrat : il ne se re-pinne pas, il se met à jour à la main, et c'est le test de `app/` qui verrouille la correspondance. |
 | BatchChef | `web/` (`lib/hubSummary.ts`) | idem |
 | JobAI | racine | idem |
