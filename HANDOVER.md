@@ -13,8 +13,7 @@
   toléré par la vérification de `dist/` (#37, #38).
 - **Fusion** : Mergify (`.mergify.yml`, depuis le 15/10) fusionne en squash une PR hors
   brouillon, sans l'étiquette `hold`, dont Gate, Qualité et Sécurité sont verts. Une PR qui
-  touche `.github/`, `scripts/hooks/`, `qualite/`, `vercel.json`, `drizzle/` ou `.env*` n'est
-  jamais fusionnée seule : c'est Marc qui fusionne.
+  touche `.github/`, `scripts/hooks/`, `qualite/`, `vercel.json`, `drizzle/` ou `.env*` est fusionnée aussi quand le contrôle « Garde-fou » est vert (oui de Marc, 15/10/2026) ; rouge (test retiré ou sauté, seuil baissé, secret, migration destructive, `.mergify.yml` ou garde-fou modifié), elle attend Marc (issue `qui:marc`).
 - **Couverture (cliquet)** : la CI (job Qualité) mesure la couverture des lignes et des branches de
   `src/` et l'affiche dans le résumé du run ; `qualite/seuils.json` fige le seuil sur la mesure et
   il ne peut que monter (`npm run portes:maj`). Aucun chiffre cible : le seuil est la mesure. Une PR
