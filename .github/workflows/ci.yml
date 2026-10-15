@@ -94,6 +94,15 @@ jobs:
       # est donc une source modifiée sans dist/ reconstruit.
       - name: dist/ commité = sortie du build
         run: |
+          # Types (.d.ts / .d.mts) : TypeScript peut écrire les propriétés des types inférés par
+          # Zod dans un ordre qui varie d'un build à l'autre (mesuré le 15/10/2026 : 1 build sur 6,
+          # value et label inversés). Un fichier de types dont seules les lignes changent d'ordre
+          # est donc accepté ; tout autre écart (contenu ajouté, retiré ou modifié) reste refusé.
+          for f in $(git diff --name-only -- 'dist/*.d.ts' 'dist/*.d.mts'); do
+            if diff -q <(git show "HEAD:$f" | sort) <(sort "$f") > /dev/null; then
+              git checkout -- "$f"
+            fi
+          done
           if [ -n "$(git status --porcelain -- dist)" ]; then
             git status --short -- dist
             echo "::error::dist/ commité ne correspond pas à « npm run build ». Reconstruire et committer dist/ (sources en LF : voir .gitattributes)."
@@ -238,8 +247,8 @@ jobs:
       # vérification serait lui-même une surface d'attaque.
       - name: Secrets (gitleaks, historique complet)
         run: |
-          curl --proto '=https' --tlsv1.2 -sSfL -o gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
-          echo "a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb  gitleaks.tgz" | sha256sum -c -
+          curl --proto '=https' --tlsv1.2 -sSfL -o gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tgz" | sha256sum -c -
           tar xzf gitleaks.tgz gitleaks
           ./gitleaks git . --no-banner --redact --log-opts="--full-history HEAD"
       - uses: actions/setup-python@v7

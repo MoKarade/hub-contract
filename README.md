@@ -25,7 +25,7 @@ flowchart LR
 ## Installation
 
 ```bash
-npm install github:MoKarade/hub-contract#v1.3.1
+npm install github:MoKarade/hub-contract#v1.4.0
 ```
 
 Pas de publication npm : l'installation se fait directement depuis GitHub.
@@ -112,7 +112,7 @@ const summary = validateSummary(await response.json());
 
 ## Le contrat
 
-Version courante : `CONTRACT_VERSION = 1`, paquet **`1.3.0`**.
+Version courante : `CONTRACT_VERSION = 1`, paquet **`1.4.0`**.
 
 Le champ `contractVersion` du JSON n'est **pas** un littéral strict — il l'a été jusqu'à la
 v1.1. C'est un entier `>= 1`, sondé **avant** la structure : un consommateur qui reçoit une
