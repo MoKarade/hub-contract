@@ -1,4 +1,5 @@
 # Mises à jour proposées automatiquement (porte sécurité de l'Atelier, S6) — ACTIONS SEULEMENT.
+# (essai du garde-fou 15/10/2026 : PR qui doit rester bloquée.)
 #
 # Pas de mises à jour npm de version ici, volontairement : chaque montée de tsup ou de TypeScript
 # change la sortie du build, donc dist/ (commité, [DIST-VERSIONNE]) — une PR Dependabot ne peut pas
