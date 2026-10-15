@@ -94,6 +94,15 @@ jobs:
       # est donc une source modifiée sans dist/ reconstruit.
       - name: dist/ commité = sortie du build
         run: |
+          # Types (.d.ts / .d.mts) : TypeScript peut écrire les propriétés des types inférés par
+          # Zod dans un ordre qui varie d'un build à l'autre (mesuré le 15/10/2026 : 1 build sur 6,
+          # value et label inversés). Un fichier de types dont seules les lignes changent d'ordre
+          # est donc accepté ; tout autre écart (contenu ajouté, retiré ou modifié) reste refusé.
+          for f in $(git diff --name-only -- 'dist/*.d.ts' 'dist/*.d.mts'); do
+            if diff -q <(git show "HEAD:$f" | sort) <(sort "$f") > /dev/null; then
+              git checkout -- "$f"
+            fi
+          done
           if [ -n "$(git status --porcelain -- dist)" ]; then
             git status --short -- dist
             echo "::error::dist/ commité ne correspond pas à « npm run build ». Reconstruire et committer dist/ (sources en LF : voir .gitattributes)."
