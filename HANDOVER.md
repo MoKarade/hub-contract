@@ -1,21 +1,21 @@
 # HANDOVER — hub-contract
 
-## État au 14/10/2026
+## État au 15/10/2026
 
 - **Ce qui tourne** : le paquet est en `1.4.0` (`package.json`), `CONTRACT_VERSION = 1`. Tags
-  présents sur `origin` (mesuré par `git ls-remote --tags origin` le 14/10) : `v1.0.0`,
+  présents sur `origin` (mesuré par `git ls-remote --tags origin` les 14 et 15/10) : `v1.0.0`,
   `v1.1.0`, `v1.3.0`, `v1.3.1`, `v1.4.0`. **Il n'existe pas de tag `v1.2.0`** : le contenu de
   la 1.2.0 (`ContractTooNewError`, `/endpoint`) n'est livré qu'à partir de `v1.3.0`.
 - **Livré depuis la dernière mise à jour** (d'après `git log`) : `v1.4.0` taguée sur `0c3309d`
   (sous-chemin `/session`, #19/#21) ; gitleaks 8.28.0 → 8.30.1 (#23) ; README pointé sur
-  `v1.4.0` (#25).
-- **Fusion** : `.github/workflows/fusion-auto.yml` arme la fusion automatique native de GitHub
-  (`gh pr merge --auto --squash`) sur toute PR non brouillon ; GitHub fusionne quand les
-  contrôles obligatoires sont verts. Pas de `CODEOWNERS` dans ce dépôt au 14/10.
-- **Pins des consommateurs au 14/10** (lus dans leurs `package.json`) : `v1.4.0` pour CarAI,
-  JobAI, MemoryAI ; `v1.3.1` pour Hubperso, FinanceAI (racine), DriveAI (`app/`), BatchChef
-  (`web/`), app-template. Hubperso et BatchChef n'ont pas encore re-pinné sur `v1.4.0`
-  (aucun import de `/session` chez eux au 14/10).
+  `v1.4.0` (#25) ; outillage Atelier et SonarCloud retirés, fusion confiée à Mergify (#34) ;
+  file Mergify compatible avec la protection « branche à jour » et ordre des lignes des `.d.ts`
+  toléré par la vérification de `dist/` (#37, #38).
+- **Fusion** : Mergify (`.mergify.yml`, depuis le 15/10) fusionne en squash une PR hors
+  brouillon, sans l'étiquette `hold`, dont Gate, Qualité et Sécurité sont verts. Une PR qui
+  touche `.github/`, `scripts/hooks/`, `qualite/`, `vercel.json`, `drizzle/` ou `.env*` n'est
+  jamais fusionnée seule : c'est Marc qui fusionne.
+- **Pins des consommateurs** : voir « Re-pin pour la v1.4.0 » plus bas (une seule source).
 - **En cours** : rien dans ce dépôt.
 - **Gel décidé par Marc le 14/10 : aucun nouveau travail sur les apps tant que le plan de
   réduction du temps des PR est en cours.**
@@ -105,7 +105,7 @@ il casserait l'installation aujourd'hui. Aucun Node ne livrait npm 12 au 23/09/2
 11.19.0, Node 26.10 → 11.19.1). Le jour où un Node livre npm 12 : ajouter `allow-git=root` dans le
 `.npmrc` de chaque consommateur (dossier du `package.json` qui déclare le contrat). Le `dist/`
 commité règle déjà l'autre moitié (scripts coupés = plus de `prepare`). Tous les consommateurs
-étaient sur v1.3.1 au 23/09/2026 (DriveAI `app/` et app-template compris) ; pins actuels : section « État au 14/10/2026 ».
+étaient sur v1.3.1 au 23/09/2026 (DriveAI `app/` et app-template compris) ; pins actuels : section « Re-pin pour la v1.4.0 ».
 
 ## Comment tagger une release
 
@@ -156,6 +156,8 @@ que le contrat qu'il utilise est encore servi par les apps.
 
 Concernés : **Hubperso, JobAI, CarAI, MemoryAI, BatchChef** — les 5 apps du chantier auth-asym, seules à importer `@mokarade/hub-contract/session`. Ils re-pinnent **à leur rythme** : ce n'est 
 pas obligatoire tout de suite, un dépôt non re-pinné reste sur son tag actuel (`/index` est inchangé). Les autres consommateurs (FinanceAI, DriveAI, app-template) n'ont rien à faire.
+
+État au 15/10/2026 : **en v1.4.0** — CarAI, JobAI, MemoryAI ; **re-pin en cours** (PR du 15/10, standard des dépôts qui aligne tout le parc sur v1.4.0) — Hubperso, app-template, DriveAI, BatchChef, FinanceAI.
 
 ### Ordre de re-pin pour la v1.3, et pourquoi il compte
 
