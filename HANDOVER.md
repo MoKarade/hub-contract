@@ -15,6 +15,11 @@
   brouillon, sans l'étiquette `hold`, dont Gate, Qualité et Sécurité sont verts. Une PR qui
   touche `.github/`, `scripts/hooks/`, `qualite/`, `vercel.json`, `drizzle/` ou `.env*` n'est
   jamais fusionnée seule : c'est Marc qui fusionne.
+- **Couverture (cliquet)** : la CI (job Qualité) mesure la couverture des lignes et des branches de
+  `src/` et l'affiche dans le résumé du run ; `qualite/seuils.json` fige le seuil sur la mesure et
+  il ne peut que monter (`npm run portes:maj`). Aucun chiffre cible : le seuil est la mesure. Une PR
+  qui la fait baisser rend la porte « RECUL », donc le job rouge. Les valeurs vivent dans
+  `qualite/seuils.json`, pas ici.
 - **Pins des consommateurs** : voir « Re-pin pour la v1.4.0 » plus bas (une seule source).
 - **En cours** : rien dans ce dépôt.
 - **Gel décidé par Marc le 14/10 : aucun nouveau travail sur les apps tant que le plan de

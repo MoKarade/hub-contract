@@ -221,6 +221,19 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Portes qualité (cliquet)
         run: node qualite/portes.mjs
+      # La couverture (et les autres portes) s'affiche dans le résumé du run, sans ouvrir les journaux.
+      # Le rapport est écrit même quand une porte recule : le tableau montre alors le chiffre fautif.
+      - name: Résumé des portes (couverture)
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            if (!fs.existsSync("qualite/rapport.json")) process.exit(0);
+            const r = JSON.parse(fs.readFileSync("qualite/rapport.json", "utf8"));
+            const l = ["## Portes qualité — " + r.app + " : " + r.verdict, "", "| Porte | Valeur | Seuil | Statut |", "|---|---|---|---|"];
+            for (const p of r.portes) l.push("| " + p.libelle + " | " + p.valeur + " | " + p.seuil + " | " + p.statut + " |");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, l.join("\n") + "\n");
+          '
       - name: Rapport
         if: always()
         uses: actions/upload-artifact@v7
