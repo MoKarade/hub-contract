@@ -19,7 +19,7 @@
 | `1.2.0` | `ContractTooNewError` : la version est sondée **avant** la structure, donc « trop récent » cesse d'être confondu avec « invalide ». `contractVersion` passe de `z.literal(1)` à un entier ≥ 1. | ✅ existe |
 | `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ✅ existe |
 | `1.3.1` | Contrat identique à `1.3.0`. `dist/` commité : sans lui, une CI en Node 24 + `--ignore-scripts` ne reçoit aucun `dist/`. | poussé après le merge |
-| `1.4.0` | Nouveau sous-chemin `@mokarade/hub-contract/session` : `verifierSession`, lecture de la session partagée signée ES256 (chantier auth-asym). Additif : `/index` inchangé, `CONTRACT_VERSION` reste `1`. | à poser par Marc après fusion |
+| `1.4.0` | Nouveau sous-chemin `@mokarade/hub-contract/session` : `verifierSession`, lecture de la session partagée signée ES256 (chantier auth-asym). Additif : `/index` inchangé, `CONTRACT_VERSION` reste `1`. | ✅ existe, pointe `0c3309d` (commit du 2026-09-29) ; constaté posé le 15/10/2026 |
 
 ## La chaîne de CI, et le seul verrou de L2 qui n'a PAS été posé ici
 
@@ -134,6 +134,8 @@ que le contrat qu'il utilise est encore servi par les apps.
 
 Concernés : **Hubperso, JobAI, CarAI, MemoryAI, BatchChef** — les 5 apps du chantier auth-asym, seules à importer `@mokarade/hub-contract/session`. Ils re-pinnent **à leur rythme** : ce n'est 
 pas obligatoire tout de suite, un dépôt non re-pinné reste sur son tag actuel (`/index` est inchangé). Les autres consommateurs (FinanceAI, DriveAI, app-template) n'ont rien à faire.
+
+État au 15/10/2026 : **en v1.4.0** — CarAI, JobAI, MemoryAI ; **re-pin en cours** (PR du 15/10, standard des dépôts qui aligne tout le parc sur v1.4.0) — Hubperso, app-template, DriveAI, BatchChef, FinanceAI.
 
 ### Ordre de re-pin pour la v1.3, et pourquoi il compte
 
