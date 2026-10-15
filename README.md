@@ -48,9 +48,10 @@ le plus discret de ce dépôt, et une instruction d'installation périmée suffi
 |---|---|---|
 | `v1.0.0` | Le contrat de base. | — |
 | `v1.1.0` | Bloc `usage` (coûts & quotas). | Tout suivi de coût. |
-| `v1.2.0` | `ContractTooNewError` (version sondée avant la structure). | Le bon diagnostic : un summary trop récent s'affiche « invalide », ce qui accuse l'app au lieu du hub. |
+| ~~`v1.2.0`~~ | **Tag jamais poussé** (absent d'`origin` au 14/10/2026) : son contenu — `ContractTooNewError` (version sondée avant la structure) — est livré à partir de `v1.3.0`. | Le bon diagnostic : un summary trop récent s'affiche « invalide », ce qui accuse l'app au lieu du hub. |
 | `v1.3.0` | `details`, `primary`, `recommendation`, `expectedMaxAgeSec`. | La vue détaillée, la désignation du chiffre principal, la recommandation, et toute détection de donnée figée. |
 | `v1.3.1` | Même contrat que `v1.3.0`, `dist/` commité. | L'installation elle-même sous Node 24 + `--ignore-scripts` (module introuvable). |
+| `v1.4.0` | Sous-chemin `@mokarade/hub-contract/session` (`verifierSession`). Contrat `.` et `/endpoint` inchangés. | `verifierSession` seulement (l'import échoue franchement, rien n'est strippé). |
 
 Fonctionne en CommonJS (`require`), en ESM (`import`) et dans un projet Vite —
 l'exports map fournit les deux formats + les déclarations TypeScript.
@@ -358,7 +359,7 @@ procédure de release sont dans [HANDOVER.md](./HANDOVER.md).
 | `ContractTooNewError` | L'app publie une version que ce build ne lit pas. | **Le consommateur** : re-pinner le hub. |
 | `Error` | Le payload est hors contrat. | **L'app** : le message liste chaque issue Zod. |
 
-Avant la v1.2.0, `contractVersion` était un `z.literal` : un summary v2 levait la même erreur
+Avant la 1.2.0 du paquet (jamais taguée : livrée dans `v1.3.0`), `contractVersion` était un `z.literal` : un summary v2 levait la même erreur
 qu'un JSON malformé, et le hub affichait « invalide » — ce qui accuse l'app alors que c'est le
 hub qui est en retard d'un re-pin.
 

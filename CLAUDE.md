@@ -17,8 +17,8 @@ rougit sinon.
 ## 1. Principes non négociables
 
 - **Aucune dépendance runtime autre que `zod` (^3).** `tsup`, `vitest` et `typescript`
-  restent en devDependencies. Ce paquet est installé par six consommateurs : chaque
-  dépendance ajoutée est ajoutée six fois.
+  restent en devDependencies. Ce paquet est installé par huit consommateurs (liste en §11) :
+  chaque dépendance ajoutée est ajoutée huit fois.
   Exception encadrée (sous-chemin `/session`, vérification de la session partagée) : `jose` est une
   **peerDependency optionnelle**, pas une dépendance runtime. Le contrat (`.`) et `/endpoint` n'en
   importent rien ; seul `@mokarade/hub-contract/session` l'utilise, et les apps qui le lisent l'ont déjà.
@@ -32,7 +32,7 @@ rougit sinon.
 - **Un changement additif optionnel ne casse personne, et c'est verrouillé par un test.**
   Les schémas strippent les clés inconnues au parse (défaut Zod) : un consommateur non
   re-pinné ignore simplement le nouveau champ. C'est ce qui rend l'évolution possible sans
-  synchroniser six dépôts le même jour.
+  synchroniser tous les consommateurs le même jour.
 
   ⚠️ **Le revers**, et il a mordu : *strippé* veut dire **silencieux**. Une app épinglée sur
   un tag antérieur à un champ le perd sans erreur — pas de rejet, juste un bloc qui disparaît
@@ -85,7 +85,7 @@ Les trois doivent passer.
 | `CLAUDE.md` | Ce fichier. |
 | `HANDOVER.md` | État des versions, des tags et des consommateurs. Procédure de release. |
 
-⚠️ **Le README est la seule doc que lisent les six apps.** Le 20/08/2026, le bloc `usage`
+⚠️ **Le README est la seule doc que lisent les apps consommatrices.** Le 20/08/2026, le bloc `usage`
 existait dans le schéma depuis la v1.1.0 et le mot n'apparaissait **pas une seule fois** dans
 le README : un producteur cherchant comment publier un coût n'avait aucun endroit où le lire.
 Un champ ajouté au schéma sans sa ligne de README est un champ que personne n'utilisera.
