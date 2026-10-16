@@ -347,7 +347,7 @@ npm run typecheck  # tsc --noEmit (strict)
 ## Évolution du contrat
 
 Les règles complètes (breaking change, changement additif, consommateurs à
-re-pinner) sont dans [CLAUDE.md](./CLAUDE.md). L'état courant du repo et la
+re-pinner) sont dans [CLAUDE.md](./CLAUDE.md) (détail : [docs/claude/01-principes.md](./docs/claude/01-principes.md)). L'état courant du repo et la
 procédure de release sont dans [HANDOVER.md](./HANDOVER.md).
 
 ## Deux modes d'échec, et ils ne disent pas la même chose
