@@ -320,11 +320,11 @@ jobs:
       security-events: write
       actions: read
 
-  # La grille de conformité : un tableau ligne par ligne dans le résumé du job. `bloquant: false`
-  # tant que la ligne 7 (zod 4) attend sa tâche (MoKarade/hub-contract#56) ; passer à `true`
-  # quand toute la grille est verte.
+  # La grille de conformité : un tableau ligne par ligne dans le résumé du job. Bloquant depuis que
+  # la ligne 7 (zod 4, MoKarade/hub-contract#56) est verte : toute la grille l'est, une régression
+  # rougit donc le job.
   conformite:
     name: Conformité
     uses: MoKarade/.github/.github/workflows/conformite.yml@main
     with:
-      bloquant: false
+      bloquant: true

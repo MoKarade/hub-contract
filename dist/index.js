@@ -222,8 +222,8 @@ var ContractTooNewError = class extends Error {
 var VersionProbeSchema = import_zod.z.object({ contractVersion: import_zod.z.number().int().min(1) });
 function formatIssue(issue) {
   const path = issue.path.length > 0 ? issue.path.join(".") : "(racine)";
-  if (issue.code === import_zod.z.ZodIssueCode.invalid_union) {
-    const branches = issue.unionErrors.flatMap((unionError) => unionError.issues).map((subIssue) => subIssue.message).join(" / ");
+  if (issue.code === "invalid_union") {
+    const branches = issue.errors.flat().map((subIssue) => subIssue.message).join(" / ");
     return `${path}: ${issue.message} (${branches})`;
   }
   return `${path}: ${issue.message}`;

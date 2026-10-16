@@ -322,8 +322,8 @@ describe("validateSummary — violations clés", () => {
     } catch (error) {
       const message = (error as Error).message;
       expect(message).toContain("metrics.0.value");
-      expect(message).toContain("Expected number");
-      expect(message).toContain("Expected string");
+      expect(message).toContain("expected number");
+      expect(message).toContain("expected string");
     }
   });
 });
@@ -698,5 +698,53 @@ describe("v1.3 — ce qu'un consommateur non re-pinné perd, et en silence", () 
     // aurait retiré ces méthodes, et ce test est ce qui l'interdit.
     expect(typeof HubSummarySchema.omit).toBe("function");
     expect(typeof HubSummarySchema.extend).toBe("function");
+  });
+});
+
+describe("passage à zod 4 — ce qui a changé aux bords, mesuré contre zod 3", () => {
+  // Corpus de 562 charges comparé le 16/10/2026 (build zod 3 contre build zod 4) : 520 verdicts et
+  // rendus identiques, 42 écarts, tous des cas de bord listés ici. Chaque test pose le verdict
+  // ET le rendu, jamais « ça ne lève pas » (le stripping rend les deux compatibles avec une perte).
+
+  it.each([
+    ["l'infini dans une métrique", (s: HubSummary) => (s.metrics[0]!.value = Infinity), /metrics\.0\.value/],
+    ["l'infini négatif dans une tendance", (s: HubSummary) => (s.metrics[0]!.trend = -Infinity), /metrics\.0\.trend/],
+    ["un coût infini", (s: HubSummary) => (s.usage = { cost: { amount: Infinity, currency: "CAD", period: "total" } }), /usage\.cost\.amount/],
+    ["un horodatage sans secondes", (s: HubSummary) => (s.generatedAt = "2026-07-15T12:00Z"), /generatedAt/],
+  ])("rejette %s (zod 3 l'acceptait ; l'infini sérialisé en JSON devient null, donc une donnée perdue)", (_nom, mute, motif) => {
+    const s = makeValidSummary();
+    mute(s);
+    expect(() => validateSummary(s)).toThrow(motif);
+  });
+
+  it("accepte un nombre fini aux extrêmes et un horodatage complet (même verdict qu'avant)", () => {
+    const s = makeValidSummary();
+    s.metrics[0]!.value = Number.MAX_SAFE_INTEGER;
+    s.metrics[0]!.trend = -0.0001;
+    s.generatedAt = "2026-07-15T12:00:00Z";
+    const rendu = validateSummary(s);
+    expect(rendu.metrics[0]!.value).toBe(Number.MAX_SAFE_INTEGER);
+    expect(rendu.generatedAt).toBe("2026-07-15T12:00:00Z");
+  });
+
+  it("rend une URL sans les espaces qui l'entourent (zod 3 les gardait dans le href publié)", () => {
+    const s = makeValidSummary();
+    s.app.url = " https://finance.hubperso.com\n";
+    expect(validateSummary(s).app.url).toBe("https://finance.hubperso.com");
+  });
+
+  it("rejette toujours une URL qui n'en est pas une", () => {
+    const s = makeValidSummary();
+    s.app.url = "pas une url";
+    expect(() => validateSummary(s)).toThrow(/app\.url/);
+  });
+
+  it("compte les longueurs en points de code : 30 émojis tiennent dans un nom de 30, 31 non", () => {
+    // zod 3 comptait des unités UTF-16 (un émoji = 2) : 16 émojis étaient déjà refusés.
+    const s = makeValidSummary();
+    s.app.name = "😀".repeat(30);
+    expect(validateSummary(s).app.name).toBe("😀".repeat(30));
+    s.app.name = "😀".repeat(31);
+    expect(() => validateSummary(s)).toThrow(/app\.name/);
   });
 });

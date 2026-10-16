@@ -300,9 +300,20 @@ fait DriveAI.
 ### Précisions de validation
 
 - **Datetimes en UTC uniquement.** `generatedAt` et `dataAsOf` exigent le
-  suffixe `Z` : le `z.string().datetime()` de Zod 3 refuse les offsets
+  suffixe `Z` : le `z.string().datetime()` de Zod refuse les offsets
   (`+02:00`) et les datetimes sans timezone. Côté app, envoyer simplement
-  `new Date().toISOString()`.
+  `new Date().toISOString()`. Depuis la 1.5.0 (Zod 4), les secondes sont aussi
+  obligatoires : `2026-07-15T12:00Z` est refusé, `2026-07-15T12:00:00Z` passe.
+- **Nombres finis uniquement (depuis la 1.5.0).** `Infinity` et `-Infinity` sont
+  refusés dans `value`, `trend`, `amount`, `used` et `limit` : JSON les
+  sérialise en `null`, donc la valeur se perdait en silence. Une grandeur
+  inconnue s'écrit `null` (là où le champ l'admet) ou s'omet, jamais `Infinity`.
+- **Espaces autour d'une URL retirés (depuis la 1.5.0).** `" https://a.com\n"` est
+  rendu `"https://a.com"`. Le verdict (accepté) ne change pas, mais le texte
+  rendu, lui, change.
+- **Longueurs comptées en points de code (depuis la 1.5.0).** Un émoji compte pour
+  un caractère, non deux : un `name` de 30 émojis passe. Aucun texte accepté
+  avant ne devient refusé.
 - **Clés inconnues strippées, pas rejetées.** Un champ absent du contrat est
   silencieusement retiré au parse. C'est le mécanisme qui rend l'évolution
   additive possible : un hub resté pinné en v1.0 tolère un summary produit

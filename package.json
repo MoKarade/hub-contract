@@ -1,6 +1,6 @@
 {
   "name": "@mokarade/hub-contract",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Contrat d'intégration hub perso <-> apps : types TypeScript + schémas Zod du endpoint GET /hub/summary",
   "license": "UNLICENSED",
   "repository": {
@@ -60,7 +60,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

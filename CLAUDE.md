@@ -2,7 +2,7 @@
 
 ## Contexte
 - **Source de vérité** du contrat d'intégration hub ↔ apps (`GET .../hub/summary`). Ce dépôt ne contient QUE le contrat : schémas Zod, types TypeScript, deux helpers (`validateSummary`, `buildingSummary`), tests, docs.
-- Stack : TypeScript · Zod 3 · tsup · Vitest. Installé depuis GitHub par tag, jamais publié sur npm. **`dist/` est commité** (depuis v1.3.1) : toute modification de `src/` se committe avec son `dist/` reconstruit, la CI rougit sinon.
+- Stack : TypeScript · Zod 4 · tsup · Vitest. Installé depuis GitHub par tag, jamais publié sur npm. **`dist/` est commité** (depuis v1.3.1) : toute modification de `src/` se committe avec son `dist/` reconstruit, la CI rougit sinon.
 - Consommateurs (huit) : Hubperso · FinanceAI (`mcp/`) · DriveAI (`api/`) · BatchChef (`web/`) · JobAI · MemoryAI · CarAI · app-template. Liste complète et re-pin : `HANDOVER.md`.
 - Pas de sections 6 et 7 : ce dépôt ne se déploie pas et ne s'intègre à aucun hub, il *est* le contrat.
 - État : `HANDOVER.md` (à lire en premier) ; plan : les issues GitHub du dépôt.
@@ -12,7 +12,7 @@
 - Gate avant commit : `npm run build && npm run test && npm run typecheck`. Détail : `docs/claude/04-commandes.md`, `05-verifications.md`.
 
 ## Règles propres au dépôt (détail : `docs/claude/01-principes.md`)
-- **Une seule dépendance runtime : `zod` (^3).** `tsup`, `vitest`, `typescript` restent en devDependencies. Exception encadrée : `jose`, peerDependency OPTIONNELLE, seulement pour le sous-chemin `/session`.
+- **Une seule dépendance runtime : `zod` (^4).** `tsup`, `vitest`, `typescript` restent en devDependencies. Exception encadrée : `jose`, peerDependency OPTIONNELLE, seulement pour le sous-chemin `/session`.
 - **Pas de logique métier, pas de composant UI, pas de fetch.** Aucun secret, aucune donnée : `x-hub-token` vit chez les consommateurs.
 - **Jamais de breaking change sans bump de `CONTRACT_VERSION` ET nouveau tag majeur.** Est breaking : retirer ou renommer un champ, rendre requis un champ optionnel, restreindre une regex / un enum / une longueur, changer une sémantique.
 - **Un changement additif optionnel ne casse personne** (les schémas strippent les clés inconnues), mais ⚠️ *strippé* veut dire **silencieux** : une app pinnée sur un vieux tag perd le champ sans erreur. Ne jamais pinner `#v1.0.0` (antérieur à `usage`).
