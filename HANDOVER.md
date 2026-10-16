@@ -20,7 +20,13 @@
   qui la fait baisser rend la porte « RECUL », donc le job rouge. Les valeurs vivent dans
   `qualite/seuils.json`, pas ici.
 - **Pins des consommateurs** : voir « Re-pin pour la v1.4.0 » plus bas (une seule source).
-- **En cours** : rien dans ce dépôt.
+- **Contrôles communs** (16/10/2026, tâche #39) : la CI appelle `securite-commune` (gitleaks, OSV-Scanner,
+  CodeQL) et `conformite` (grille de `MoKarade/.github`, **non bloquante** : le tableau est dans le résumé
+  du job), a un job `audit` (`npm audit --omit=dev`) et un script `npm run lint` (knip + dependency-cruiser,
+  sans ESLint) lancé par le gate. Pas de `fumee` : le contrat n'est pas une app déployée. Toutes les actions
+  sont épinglées par SHA. **Ligne rouge restante** : la ligne 7 (zod 3 au lieu de ≥ 4), tâche #56 ; passer
+  `bloquant: true` dans `ci.yml` quand elle est verte.
+- **En cours** : rien dans ce dépôt (la tâche #56, zod 4, attend sa prise).
 - **Gel décidé par Marc le 14/10 : aucun nouveau travail sur les apps tant que le plan de
   réduction du temps des PR est en cours.**
 

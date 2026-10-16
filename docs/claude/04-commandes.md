@@ -6,4 +6,5 @@
 npm run build      # tsup → dist/ (CJS + ESM + .d.ts)
 npm run test       # vitest
 npm run typecheck  # tsc --noEmit
+npm run lint       # knip (code mort) puis dependency-cruiser (architecture) : pas d'ESLint ici
 ```

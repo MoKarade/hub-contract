@@ -51,6 +51,7 @@
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "lint": "knip && depcruise src",
     "portes": "node qualite/portes.mjs",
     "portes:maj": "node qualite/portes.mjs --maj",
     "prepare": "npm run build"
