@@ -28,7 +28,7 @@
 
 - `package.json` annonce **`1.4.0`** (v1.3.1 + le sous-chemin `/session`, `dist/` commité — voir plus bas).
   `CONTRACT_VERSION` reste **`1`** : les quatre ajouts de la v1.3 sont optionnels, donc
-  additifs (règle d'évolution n°2 du `CLAUDE.md`).
+  additifs (règle d'évolution n°2 de `docs/claude/01-principes.md`).
 - Contrat complet dans `src/index.ts` ; endpoint partagé dans `src/endpoint.ts`.
 - Pour le nombre de tests et le détail des champs, voir la source qui fait foi — `npm test` et
   `README.md`. **Aucun chiffre au présent n'est recopié ici** : le précédent (« 38 tests »)
@@ -151,7 +151,7 @@ git push origin vX.Y.Z
 
 *(BatchChef et JobAI manquaient à cette table — trouvé par l'audit de dette inter-dépôts de
 JobAI, 2026-07-29. Toute nouvelle app consommatrice s'ajoute ici ET dans la liste du
-`CLAUDE.md` §11, dans le même commit.)*
+`docs/claude/11-release.md` et dans le « Contexte » de `CLAUDE.md`, dans le même commit.)*
 
 Un consommateur non re-pinné reste sur l'ancien tag : comportement voulu, aucune urgence tant
 que le contrat qu'il utilise est encore servi par les apps.
