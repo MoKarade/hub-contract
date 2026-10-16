@@ -185,8 +185,8 @@ var ContractTooNewError = class extends Error {
 var VersionProbeSchema = z.object({ contractVersion: z.number().int().min(1) });
 function formatIssue(issue) {
   const path = issue.path.length > 0 ? issue.path.join(".") : "(racine)";
-  if (issue.code === z.ZodIssueCode.invalid_union) {
-    const branches = issue.unionErrors.flatMap((unionError) => unionError.issues).map((subIssue) => subIssue.message).join(" / ");
+  if (issue.code === "invalid_union") {
+    const branches = issue.errors.flat().map((subIssue) => subIssue.message).join(" / ");
     return `${path}: ${issue.message} (${branches})`;
   }
   return `${path}: ${issue.message}`;
@@ -246,4 +246,4 @@ export {
   validateSummary,
   buildingSummary
 };
-//# sourceMappingURL=chunk-EFKLDUQ6.mjs.map
+//# sourceMappingURL=chunk-G75DY5AV.mjs.map

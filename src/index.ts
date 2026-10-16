@@ -327,11 +327,11 @@ export class ContractTooNewError extends Error {
  */
 const VersionProbeSchema = z.object({ contractVersion: z.number().int().min(1) });
 
-function formatIssue(issue: z.ZodIssue): string {
+function formatIssue(issue: z.core.$ZodIssue): string {
   const path = issue.path.length > 0 ? issue.path.join(".") : "(racine)";
-  if (issue.code === z.ZodIssueCode.invalid_union) {
-    const branches = issue.unionErrors
-      .flatMap((unionError) => unionError.issues)
+  if (issue.code === "invalid_union") {
+    const branches = issue.errors
+      .flat()
       .map((subIssue) => subIssue.message)
       .join(" / ");
     return `${path}: ${issue.message} (${branches})`;

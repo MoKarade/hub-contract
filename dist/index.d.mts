@@ -14,42 +14,21 @@ declare const HUB_TOKEN_HEADER = "x-hub-token";
 /** Une métrique affichée dans le widget de l'app (max 6 par summary). */
 declare const HubMetricSchema: z.ZodObject<{
     label: z.ZodString;
-    value: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
-    format: z.ZodEnum<["currency", "percent", "number", "text"]>;
-    /** Variation relative signée en % (ex: +2.3). Optionnel. */
+    value: z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>;
+    format: z.ZodEnum<{
+        number: "number";
+        currency: "currency";
+        percent: "percent";
+        text: "text";
+    }>;
     trend: z.ZodOptional<z.ZodNumber>;
-    severity: z.ZodOptional<z.ZodEnum<["ok", "warn", "alert"]>>;
-} & {
-    /**
-     * Cette métrique est LE chiffre de l'app — celui qui porte la grande tuile du hub
-     * (additif v1.3, optionnel).
-     *
-     * ⚠️ C'est un drapeau PORTÉ PAR la métrique, et non un `primaryMetric: "<label>"` à la
-     * racine du summary. La différence compte : une référence par libellé peut pendre dans le
-     * vide (l'app renomme la métrique, oublie la référence, et le hub cherche un libellé qui
-     * n'existe plus), alors qu'un drapeau ne peut désigner que ce à quoi il est attaché. Il
-     * n'existe donc aucun état « désigne une métrique absente ».
-     *
-     * Une seule métrique peut le porter — voir le `refine` sur le tableau `metrics`. Le hub
-     * retombe sur la première métrique quand aucune ne le porte : c'est ce qu'il faisait déjà,
-     * la nouveauté est de pouvoir le dire au lieu de le laisser deviner.
-     */
+    severity: z.ZodOptional<z.ZodEnum<{
+        ok: "ok";
+        warn: "warn";
+        alert: "alert";
+    }>>;
     primary: z.ZodOptional<z.ZodBoolean>;
-}, "strip", z.ZodTypeAny, {
-    value: string | number;
-    label: string;
-    format: "number" | "currency" | "percent" | "text";
-    trend?: number | undefined;
-    severity?: "ok" | "warn" | "alert" | undefined;
-    primary?: boolean | undefined;
-}, {
-    value: string | number;
-    label: string;
-    format: "number" | "currency" | "percent" | "text";
-    trend?: number | undefined;
-    severity?: "ok" | "warn" | "alert" | undefined;
-    primary?: boolean | undefined;
-}>;
+}, z.core.$strip>;
 /**
  * Une ligne de la vue détaillée (additif v1.3). Même forme qu'une métrique, plus une
  * précision courte — et sans `primary` : une ligne de détail n'est jamais le titre d'une
@@ -57,33 +36,21 @@ declare const HubMetricSchema: z.ZodObject<{
  */
 declare const HubDetailItemSchema: z.ZodObject<{
     label: z.ZodString;
-    value: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
-    format: z.ZodEnum<["currency", "percent", "number", "text"]>;
-    /** Variation relative signée en % (ex: +2.3). Optionnel. */
+    value: z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>;
+    format: z.ZodEnum<{
+        number: "number";
+        currency: "currency";
+        percent: "percent";
+        text: "text";
+    }>;
     trend: z.ZodOptional<z.ZodNumber>;
-    severity: z.ZodOptional<z.ZodEnum<["ok", "warn", "alert"]>>;
-} & {
-    /**
-     * Précision affichée sous la valeur : l'unité, la période couverte, la base d'un
-     * pourcentage. C'est ce qui empêche « +4,2 % » d'être ambigu — +4,2 % depuis quand, sur
-     * quoi ? Un chiffre dont on ne peut pas dire ce qu'il mesure vaut moins qu'aucun chiffre.
-     */
+    severity: z.ZodOptional<z.ZodEnum<{
+        ok: "ok";
+        warn: "warn";
+        alert: "alert";
+    }>>;
     hint: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    value: string | number;
-    label: string;
-    format: "number" | "currency" | "percent" | "text";
-    trend?: number | undefined;
-    severity?: "ok" | "warn" | "alert" | undefined;
-    hint?: string | undefined;
-}, {
-    value: string | number;
-    label: string;
-    format: "number" | "currency" | "percent" | "text";
-    trend?: number | undefined;
-    severity?: "ok" | "warn" | "alert" | undefined;
-    hint?: string | undefined;
-}>;
+}, z.core.$strip>;
 /**
  * Un groupe de lignes de détail, affiché comme un bloc titré (additif v1.3).
  *
@@ -95,112 +62,50 @@ declare const HubDetailSectionSchema: z.ZodObject<{
     title: z.ZodString;
     items: z.ZodArray<z.ZodObject<{
         label: z.ZodString;
-        value: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
-        format: z.ZodEnum<["currency", "percent", "number", "text"]>;
-        /** Variation relative signée en % (ex: +2.3). Optionnel. */
+        value: z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>;
+        format: z.ZodEnum<{
+            number: "number";
+            currency: "currency";
+            percent: "percent";
+            text: "text";
+        }>;
         trend: z.ZodOptional<z.ZodNumber>;
-        severity: z.ZodOptional<z.ZodEnum<["ok", "warn", "alert"]>>;
-    } & {
-        /**
-         * Précision affichée sous la valeur : l'unité, la période couverte, la base d'un
-         * pourcentage. C'est ce qui empêche « +4,2 % » d'être ambigu — +4,2 % depuis quand, sur
-         * quoi ? Un chiffre dont on ne peut pas dire ce qu'il mesure vaut moins qu'aucun chiffre.
-         */
+        severity: z.ZodOptional<z.ZodEnum<{
+            ok: "ok";
+            warn: "warn";
+            alert: "alert";
+        }>>;
         hint: z.ZodOptional<z.ZodString>;
-    }, "strip", z.ZodTypeAny, {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        hint?: string | undefined;
-    }, {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        hint?: string | undefined;
-    }>, "many">;
-}, "strip", z.ZodTypeAny, {
-    title: string;
-    items: {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        hint?: string | undefined;
-    }[];
-}, {
-    title: string;
-    items: {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        hint?: string | undefined;
-    }[];
-}>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
 /** Une alerte remontée au hub (max 10 par summary). */
 declare const HubAlertSchema: z.ZodObject<{
     label: z.ZodString;
-    severity: z.ZodEnum<["info", "warn", "alert"]>;
-    /** Deep link vers l'écran concerné dans l'app. */
+    severity: z.ZodEnum<{
+        warn: "warn";
+        alert: "alert";
+        info: "info";
+    }>;
     href: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    label: string;
-    severity: "warn" | "alert" | "info";
-    href?: string | undefined;
-}, {
-    label: string;
-    severity: "warn" | "alert" | "info";
-    href?: string | undefined;
-}>;
+}, z.core.$strip>;
 /** Une action proposée par l'app dans son widget (max 6 par summary). */
 declare const HubActionSchema: z.ZodObject<{
     label: z.ZodString;
-    /** "link" = deep link (v1). "trigger" = webhook POST (réservé v2, ne pas implémenter côté apps). */
-    kind: z.ZodEnum<["link", "trigger"]>;
+    kind: z.ZodEnum<{
+        link: "link";
+        trigger: "trigger";
+    }>;
     href: z.ZodString;
-    /** Si présent, le hub demande confirmation avant d'exécuter. */
     confirm: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    label: string;
-    href: string;
-    kind: "link" | "trigger";
-    confirm?: string | undefined;
-}, {
-    label: string;
-    href: string;
-    kind: "link" | "trigger";
-    confirm?: string | undefined;
-}>;
+}, z.core.$strip>;
 /** État d'un quota d'API/service consommé par l'app (carte « Coûts & quotas » du hub). */
 declare const HubQuotaSchema: z.ZodObject<{
     label: z.ZodString;
-    /** Quantité consommée sur la période. */
     used: z.ZodNumber;
-    /** Plafond connu ; null si l'app ne connaît pas de limite chiffrée. */
     limit: z.ZodNullable<z.ZodNumber>;
-    /** Unité affichée (ex: "appels", "Go", "courriels"). Optionnel. */
     unit: z.ZodOptional<z.ZodString>;
-    /** Quand le compteur se réinitialise (ex: quota quotidien). Optionnel. */
     resetAt: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    label: string;
-    used: number;
-    limit: number | null;
-    unit?: string | undefined;
-    resetAt?: string | undefined;
-}, {
-    label: string;
-    used: number;
-    limit: number | null;
-    unit?: string | undefined;
-    resetAt?: string | undefined;
-}>;
+}, z.core.$strip>;
 /**
  * Coût et quotas de l'app (tout optionnel). Une app qui ne suit rien omet ce bloc — le hub
  * l'affiche « non suivi », jamais un 0 inventé.
@@ -221,70 +126,25 @@ declare const HubQuotaSchema: z.ZodObject<{
  */
 declare const HubUsageSchema: z.ZodObject<{
     cost: z.ZodOptional<z.ZodObject<{
-        /** Montant dépensé (≥ 0), dans la devise indiquée. */
         amount: z.ZodNumber;
-        currency: z.ZodEnum<["USD", "CAD"]>;
-        /** Portée du montant : cumulé, ce mois-ci, ou aujourd'hui. */
-        period: z.ZodEnum<["total", "mois", "jour"]>;
-    }, "strip", z.ZodTypeAny, {
-        currency: "USD" | "CAD";
-        amount: number;
-        period: "total" | "mois" | "jour";
-    }, {
-        currency: "USD" | "CAD";
-        amount: number;
-        period: "total" | "mois" | "jour";
-    }>>;
+        currency: z.ZodEnum<{
+            USD: "USD";
+            CAD: "CAD";
+        }>;
+        period: z.ZodEnum<{
+            total: "total";
+            mois: "mois";
+            jour: "jour";
+        }>;
+    }, z.core.$strip>>;
     quotas: z.ZodOptional<z.ZodArray<z.ZodObject<{
         label: z.ZodString;
-        /** Quantité consommée sur la période. */
         used: z.ZodNumber;
-        /** Plafond connu ; null si l'app ne connaît pas de limite chiffrée. */
         limit: z.ZodNullable<z.ZodNumber>;
-        /** Unité affichée (ex: "appels", "Go", "courriels"). Optionnel. */
         unit: z.ZodOptional<z.ZodString>;
-        /** Quand le compteur se réinitialise (ex: quota quotidien). Optionnel. */
         resetAt: z.ZodOptional<z.ZodString>;
-    }, "strip", z.ZodTypeAny, {
-        label: string;
-        used: number;
-        limit: number | null;
-        unit?: string | undefined;
-        resetAt?: string | undefined;
-    }, {
-        label: string;
-        used: number;
-        limit: number | null;
-        unit?: string | undefined;
-        resetAt?: string | undefined;
-    }>, "many">>;
-}, "strip", z.ZodTypeAny, {
-    cost?: {
-        currency: "USD" | "CAD";
-        amount: number;
-        period: "total" | "mois" | "jour";
-    } | undefined;
-    quotas?: {
-        label: string;
-        used: number;
-        limit: number | null;
-        unit?: string | undefined;
-        resetAt?: string | undefined;
-    }[] | undefined;
-}, {
-    cost?: {
-        currency: "USD" | "CAD";
-        amount: number;
-        period: "total" | "mois" | "jour";
-    } | undefined;
-    quotas?: {
-        label: string;
-        used: number;
-        limit: number | null;
-        unit?: string | undefined;
-        resetAt?: string | undefined;
-    }[] | undefined;
-}>;
+    }, z.core.$strip>>>;
+}, z.core.$strip>;
 /**
  * LA prochaine chose à faire, selon l'app (additif v1.3, optionnel).
  *
@@ -307,21 +167,10 @@ declare const HubUsageSchema: z.ZodObject<{
  * au bout du `href`.
  */
 declare const HubRecommendationSchema: z.ZodObject<{
-    /** L'action, à l'impératif et chiffrée quand c'est possible. */
     label: z.ZodString;
-    /** Pourquoi, en une phrase. Une recommandation sans raison ne se vérifie pas. */
     why: z.ZodOptional<z.ZodString>;
-    /** Deep link vers l'écran où l'on fait la chose. */
     href: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    label: string;
-    href?: string | undefined;
-    why?: string | undefined;
-}, {
-    label: string;
-    href?: string | undefined;
-    why?: string | undefined;
-}>;
+}, z.core.$strip>;
 /**
  * Le payload complet renvoyé par `GET .../hub/summary`.
  * C'est LE contrat : le hub ne connaît rien d'autre des apps.
@@ -334,464 +183,104 @@ declare const HubRecommendationSchema: z.ZodObject<{
  * `details`), et la seule qui relie DEUX champs frères est vérifiée dans `validateSummary`.
  */
 declare const HubSummarySchema: z.ZodObject<{
-    /**
-     * Version du format de fil publiée par l'app. Volontairement PAS un `z.literal` :
-     * voir `validateSummary`, qui sonde ce champ AVANT la structure pour pouvoir dire
-     * « trop récent » au lieu de « invalide ».
-     */
     contractVersion: z.ZodNumber;
     app: z.ZodObject<{
-        /** Identifiant stable de l'app, kebab-case (ex: "financeai", "drive-ai"). */
         id: z.ZodString;
         name: z.ZodString;
         url: z.ZodString;
-        /** Couleur d'accent du widget, hex 6 digits. */
         color: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        id: string;
-        name: string;
-        url: string;
-        color: string;
-    }, {
-        id: string;
-        name: string;
-        url: string;
-        color: string;
-    }>;
-    /** Quand ce JSON a été généré. */
+    }, z.core.$strip>;
     generatedAt: z.ZodString;
-    /** Fraîcheur des données sous-jacentes si différente de generatedAt
-        (ex: dernière synchronisation d'état). */
     dataAsOf: z.ZodOptional<z.ZodString>;
-    /**
-     * Âge maximal NORMAL de `dataAsOf`, en secondes (additif v1.3, optionnel).
-     *
-     * ── CE QU'IL RÉPARE ──────────────────────────────────────────────────────────────────
-     *
-     * Le hub voit `dataAsOf` mais ne sait pas si sa valeur est bonne ou mauvaise. « 40 min »
-     * est parfaitement sain pour un véhicule qui se rafraîchit aux 30-60 min, et catastrophique
-     * pour un moteur qui passe aux 5 min. Faute de savoir, le hub ne pouvait que deviner — donc
-     * se tromper pour au moins une app, et un seuil deviné côté hub serait de la connaissance
-     * d'app codée en dur, exactement ce que le contrat existe pour éviter.
-     *
-     * Avec ce champ, c'est l'app qui déclare son propre rythme et le hub ne fait que comparer.
-     * Il peut alors distinguer, sans rien savoir du métier : donnée fraîche, donnée FIGÉE
-     * au-delà du normal, et fraîcheur non déclarée. Mesuré le 14/09/2026 : un poll annoncé
-     * toutes les 30 min avait un trou de 6 h 53, tous les runs verts et rien à l'écran.
-     *
-     * ── CE QU'IL NE PROMET PAS ───────────────────────────────────────────────────────────
-     *
-     * Un âge dépassé n'est pas une panne : c'est un retard OBSERVABLE. Le producteur déclare
-     * un rythme attendu, pas une garantie — et c'est le hub qui décide comment le dire.
-     *
-     * Plafond à 30 jours : au-delà, ce n'est plus une déclaration de fraîcheur, c'est son
-     * absence, et il vaut mieux omettre le champ que de promettre un mois.
-     *
-     * ⚠️ N'a aucun sens sans `dataAsOf` : voir le contrôle dans `validateSummary`.
-     */
     expectedMaxAgeSec: z.ZodOptional<z.ZodNumber>;
-    /** "building" = app en développement, moteur pas encore actif. */
-    status: z.ZodEnum<["ok", "degraded", "error", "building"]>;
-    metrics: z.ZodEffects<z.ZodArray<z.ZodObject<{
+    status: z.ZodEnum<{
+        error: "error";
+        ok: "ok";
+        degraded: "degraded";
+        building: "building";
+    }>;
+    metrics: z.ZodArray<z.ZodObject<{
         label: z.ZodString;
-        value: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
-        format: z.ZodEnum<["currency", "percent", "number", "text"]>;
-        /** Variation relative signée en % (ex: +2.3). Optionnel. */
+        value: z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>;
+        format: z.ZodEnum<{
+            number: "number";
+            currency: "currency";
+            percent: "percent";
+            text: "text";
+        }>;
         trend: z.ZodOptional<z.ZodNumber>;
-        severity: z.ZodOptional<z.ZodEnum<["ok", "warn", "alert"]>>;
-    } & {
-        /**
-         * Cette métrique est LE chiffre de l'app — celui qui porte la grande tuile du hub
-         * (additif v1.3, optionnel).
-         *
-         * ⚠️ C'est un drapeau PORTÉ PAR la métrique, et non un `primaryMetric: "<label>"` à la
-         * racine du summary. La différence compte : une référence par libellé peut pendre dans le
-         * vide (l'app renomme la métrique, oublie la référence, et le hub cherche un libellé qui
-         * n'existe plus), alors qu'un drapeau ne peut désigner que ce à quoi il est attaché. Il
-         * n'existe donc aucun état « désigne une métrique absente ».
-         *
-         * Une seule métrique peut le porter — voir le `refine` sur le tableau `metrics`. Le hub
-         * retombe sur la première métrique quand aucune ne le porte : c'est ce qu'il faisait déjà,
-         * la nouveauté est de pouvoir le dire au lieu de le laisser deviner.
-         */
+        severity: z.ZodOptional<z.ZodEnum<{
+            ok: "ok";
+            warn: "warn";
+            alert: "alert";
+        }>>;
         primary: z.ZodOptional<z.ZodBoolean>;
-    }, "strip", z.ZodTypeAny, {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        primary?: boolean | undefined;
-    }, {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        primary?: boolean | undefined;
-    }>, "many">, {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        primary?: boolean | undefined;
-    }[], {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        primary?: boolean | undefined;
-    }[]>;
+    }, z.core.$strip>>;
     alerts: z.ZodArray<z.ZodObject<{
         label: z.ZodString;
-        severity: z.ZodEnum<["info", "warn", "alert"]>;
-        /** Deep link vers l'écran concerné dans l'app. */
+        severity: z.ZodEnum<{
+            warn: "warn";
+            alert: "alert";
+            info: "info";
+        }>;
         href: z.ZodOptional<z.ZodString>;
-    }, "strip", z.ZodTypeAny, {
-        label: string;
-        severity: "warn" | "alert" | "info";
-        href?: string | undefined;
-    }, {
-        label: string;
-        severity: "warn" | "alert" | "info";
-        href?: string | undefined;
-    }>, "many">;
+    }, z.core.$strip>>;
     actions: z.ZodArray<z.ZodObject<{
         label: z.ZodString;
-        /** "link" = deep link (v1). "trigger" = webhook POST (réservé v2, ne pas implémenter côté apps). */
-        kind: z.ZodEnum<["link", "trigger"]>;
+        kind: z.ZodEnum<{
+            link: "link";
+            trigger: "trigger";
+        }>;
         href: z.ZodString;
-        /** Si présent, le hub demande confirmation avant d'exécuter. */
         confirm: z.ZodOptional<z.ZodString>;
-    }, "strip", z.ZodTypeAny, {
-        label: string;
-        href: string;
-        kind: "link" | "trigger";
-        confirm?: string | undefined;
-    }, {
-        label: string;
-        href: string;
-        kind: "link" | "trigger";
-        confirm?: string | undefined;
-    }>, "many">;
-    /**
-     * La vue détaillée de l'app : des sections titrées, affichées quand on demande les détails
-     * (additif v1.3, optionnel). Le plafond de 6 `metrics` protège la LISIBILITÉ DE LA CARTE ;
-     * il n'avait aucune raison de borner ce qu'on peut consulter en cliquant.
-     *
-     * ⚠️ LES LIBELLÉS SERVENT DE CLÉ, DONC ILS DOIVENT ÊTRE UNIQUES. Le hub garde une mémoire
-     * des relevés pour tracer l'évolution d'une valeur dans le temps, et cette série est
-     * retrouvée PAR SON LIBELLÉ. Deux lignes homonymes dans la même section donneraient une
-     * courbe qui saute d'une grandeur à l'autre — un graphe faux, sans rien d'anormal à
-     * l'écran. Le couple (titre de section, libellé) est donc la clé, et les deux
-     * contrôles ci-dessous sont ce qui la rend fiable : titres de sections distincts, et
-     * libellés distincts À L'INTÉRIEUR d'une section.
-     *
-     * Deux sections PEUVENT réutiliser le même libellé (« Placements » sous « Aujourd'hui »
-     * et sous « Depuis le début » est une forme légitime, et même la plus lisible) — c'est
-     * exactement pourquoi la clé est le couple et non le libellé seul.
-     */
-    details: z.ZodOptional<z.ZodEffects<z.ZodEffects<z.ZodArray<z.ZodObject<{
+    }, z.core.$strip>>;
+    details: z.ZodOptional<z.ZodArray<z.ZodObject<{
         title: z.ZodString;
         items: z.ZodArray<z.ZodObject<{
             label: z.ZodString;
-            value: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
-            format: z.ZodEnum<["currency", "percent", "number", "text"]>;
-            /** Variation relative signée en % (ex: +2.3). Optionnel. */
+            value: z.ZodUnion<readonly [z.ZodNumber, z.ZodString]>;
+            format: z.ZodEnum<{
+                number: "number";
+                currency: "currency";
+                percent: "percent";
+                text: "text";
+            }>;
             trend: z.ZodOptional<z.ZodNumber>;
-            severity: z.ZodOptional<z.ZodEnum<["ok", "warn", "alert"]>>;
-        } & {
-            /**
-             * Précision affichée sous la valeur : l'unité, la période couverte, la base d'un
-             * pourcentage. C'est ce qui empêche « +4,2 % » d'être ambigu — +4,2 % depuis quand, sur
-             * quoi ? Un chiffre dont on ne peut pas dire ce qu'il mesure vaut moins qu'aucun chiffre.
-             */
+            severity: z.ZodOptional<z.ZodEnum<{
+                ok: "ok";
+                warn: "warn";
+                alert: "alert";
+            }>>;
             hint: z.ZodOptional<z.ZodString>;
-        }, "strip", z.ZodTypeAny, {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }, {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }>, "many">;
-    }, "strip", z.ZodTypeAny, {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }, {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }>, "many">, {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }[], {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }[]>, {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }[], {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }[]>>;
-    /** LA prochaine chose à faire selon l'app (additif v1.3, optionnel). */
+        }, z.core.$strip>>;
+    }, z.core.$strip>>>;
     recommendation: z.ZodOptional<z.ZodObject<{
-        /** L'action, à l'impératif et chiffrée quand c'est possible. */
         label: z.ZodString;
-        /** Pourquoi, en une phrase. Une recommandation sans raison ne se vérifie pas. */
         why: z.ZodOptional<z.ZodString>;
-        /** Deep link vers l'écran où l'on fait la chose. */
         href: z.ZodOptional<z.ZodString>;
-    }, "strip", z.ZodTypeAny, {
-        label: string;
-        href?: string | undefined;
-        why?: string | undefined;
-    }, {
-        label: string;
-        href?: string | undefined;
-        why?: string | undefined;
-    }>>;
-    /** Coûts & quotas de l'app (additif v1.1 ; optionnel — les consumers v1.0 l'ignorent). */
+    }, z.core.$strip>>;
     usage: z.ZodOptional<z.ZodObject<{
         cost: z.ZodOptional<z.ZodObject<{
-            /** Montant dépensé (≥ 0), dans la devise indiquée. */
             amount: z.ZodNumber;
-            currency: z.ZodEnum<["USD", "CAD"]>;
-            /** Portée du montant : cumulé, ce mois-ci, ou aujourd'hui. */
-            period: z.ZodEnum<["total", "mois", "jour"]>;
-        }, "strip", z.ZodTypeAny, {
-            currency: "USD" | "CAD";
-            amount: number;
-            period: "total" | "mois" | "jour";
-        }, {
-            currency: "USD" | "CAD";
-            amount: number;
-            period: "total" | "mois" | "jour";
-        }>>;
+            currency: z.ZodEnum<{
+                USD: "USD";
+                CAD: "CAD";
+            }>;
+            period: z.ZodEnum<{
+                total: "total";
+                mois: "mois";
+                jour: "jour";
+            }>;
+        }, z.core.$strip>>;
         quotas: z.ZodOptional<z.ZodArray<z.ZodObject<{
             label: z.ZodString;
-            /** Quantité consommée sur la période. */
             used: z.ZodNumber;
-            /** Plafond connu ; null si l'app ne connaît pas de limite chiffrée. */
             limit: z.ZodNullable<z.ZodNumber>;
-            /** Unité affichée (ex: "appels", "Go", "courriels"). Optionnel. */
             unit: z.ZodOptional<z.ZodString>;
-            /** Quand le compteur se réinitialise (ex: quota quotidien). Optionnel. */
             resetAt: z.ZodOptional<z.ZodString>;
-        }, "strip", z.ZodTypeAny, {
-            label: string;
-            used: number;
-            limit: number | null;
-            unit?: string | undefined;
-            resetAt?: string | undefined;
-        }, {
-            label: string;
-            used: number;
-            limit: number | null;
-            unit?: string | undefined;
-            resetAt?: string | undefined;
-        }>, "many">>;
-    }, "strip", z.ZodTypeAny, {
-        cost?: {
-            currency: "USD" | "CAD";
-            amount: number;
-            period: "total" | "mois" | "jour";
-        } | undefined;
-        quotas?: {
-            label: string;
-            used: number;
-            limit: number | null;
-            unit?: string | undefined;
-            resetAt?: string | undefined;
-        }[] | undefined;
-    }, {
-        cost?: {
-            currency: "USD" | "CAD";
-            amount: number;
-            period: "total" | "mois" | "jour";
-        } | undefined;
-        quotas?: {
-            label: string;
-            used: number;
-            limit: number | null;
-            unit?: string | undefined;
-            resetAt?: string | undefined;
-        }[] | undefined;
-    }>>;
-}, "strip", z.ZodTypeAny, {
-    contractVersion: number;
-    status: "ok" | "degraded" | "error" | "building";
-    app: {
-        id: string;
-        name: string;
-        url: string;
-        color: string;
-    };
-    generatedAt: string;
-    metrics: {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        primary?: boolean | undefined;
-    }[];
-    alerts: {
-        label: string;
-        severity: "warn" | "alert" | "info";
-        href?: string | undefined;
-    }[];
-    actions: {
-        label: string;
-        href: string;
-        kind: "link" | "trigger";
-        confirm?: string | undefined;
-    }[];
-    dataAsOf?: string | undefined;
-    expectedMaxAgeSec?: number | undefined;
-    details?: {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }[] | undefined;
-    recommendation?: {
-        label: string;
-        href?: string | undefined;
-        why?: string | undefined;
-    } | undefined;
-    usage?: {
-        cost?: {
-            currency: "USD" | "CAD";
-            amount: number;
-            period: "total" | "mois" | "jour";
-        } | undefined;
-        quotas?: {
-            label: string;
-            used: number;
-            limit: number | null;
-            unit?: string | undefined;
-            resetAt?: string | undefined;
-        }[] | undefined;
-    } | undefined;
-}, {
-    contractVersion: number;
-    status: "ok" | "degraded" | "error" | "building";
-    app: {
-        id: string;
-        name: string;
-        url: string;
-        color: string;
-    };
-    generatedAt: string;
-    metrics: {
-        value: string | number;
-        label: string;
-        format: "number" | "currency" | "percent" | "text";
-        trend?: number | undefined;
-        severity?: "ok" | "warn" | "alert" | undefined;
-        primary?: boolean | undefined;
-    }[];
-    alerts: {
-        label: string;
-        severity: "warn" | "alert" | "info";
-        href?: string | undefined;
-    }[];
-    actions: {
-        label: string;
-        href: string;
-        kind: "link" | "trigger";
-        confirm?: string | undefined;
-    }[];
-    dataAsOf?: string | undefined;
-    expectedMaxAgeSec?: number | undefined;
-    details?: {
-        title: string;
-        items: {
-            value: string | number;
-            label: string;
-            format: "number" | "currency" | "percent" | "text";
-            trend?: number | undefined;
-            severity?: "ok" | "warn" | "alert" | undefined;
-            hint?: string | undefined;
-        }[];
-    }[] | undefined;
-    recommendation?: {
-        label: string;
-        href?: string | undefined;
-        why?: string | undefined;
-    } | undefined;
-    usage?: {
-        cost?: {
-            currency: "USD" | "CAD";
-            amount: number;
-            period: "total" | "mois" | "jour";
-        } | undefined;
-        quotas?: {
-            label: string;
-            used: number;
-            limit: number | null;
-            unit?: string | undefined;
-            resetAt?: string | undefined;
-        }[] | undefined;
-    } | undefined;
-}>;
+        }, z.core.$strip>>>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
 type HubMetric = z.infer<typeof HubMetricSchema>;
 type HubAlert = z.infer<typeof HubAlertSchema>;
 type HubAction = z.infer<typeof HubActionSchema>;
