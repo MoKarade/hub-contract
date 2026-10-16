@@ -25,7 +25,7 @@ flowchart LR
 ## Installation
 
 ```bash
-npm install github:MoKarade/hub-contract#v1.4.0
+npm install github:MoKarade/hub-contract#v1.5.0
 ```
 
 Pas de publication npm : l'installation se fait directement depuis GitHub.
@@ -52,6 +52,7 @@ le plus discret de ce dépôt, et une instruction d'installation périmée suffi
 | `v1.3.0` | `details`, `primary`, `recommendation`, `expectedMaxAgeSec`. | La vue détaillée, la désignation du chiffre principal, la recommandation, et toute détection de donnée figée. |
 | `v1.3.1` | Même contrat que `v1.3.0`, `dist/` commité. | L'installation elle-même sous Node 24 + `--ignore-scripts` (module introuvable). |
 | `v1.4.0` | Sous-chemin `@mokarade/hub-contract/session` (`verifierSession`). Contrat `.` et `/endpoint` inchangés. | `verifierSession` seulement (l'import échoue franchement, rien n'est strippé). |
+| `v1.5.0` | Le contrat passe à Zod 4 (`zod ^4.6.7`). Format du fil et `CONTRACT_VERSION` inchangés. | Rien n'est retiré ; trois bords se resserrent (secondes obligatoires dans les datetimes, `Infinity` refusé, espaces d'URL retirés au rendu), voir « Précisions de validation ». |
 
 Fonctionne en CommonJS (`require`), en ESM (`import`) et dans un projet Vite —
 l'exports map fournit les deux formats + les déclarations TypeScript.
@@ -113,7 +114,7 @@ const summary = validateSummary(await response.json());
 
 ## Le contrat
 
-Version courante : `CONTRACT_VERSION = 1`, paquet **`1.4.0`**.
+Version courante : `CONTRACT_VERSION = 1`, paquet **`1.5.0`**.
 
 Le champ `contractVersion` du JSON n'est **pas** un littéral strict — il l'a été jusqu'à la
 v1.1. C'est un entier `>= 1`, sondé **avant** la structure : un consommateur qui reçoit une

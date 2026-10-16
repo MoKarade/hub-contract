@@ -2,9 +2,9 @@
 
 ## État au 15/10/2026
 
-- **Ce qui tourne** : le paquet est en `1.5.0` (`package.json`, **pas encore taguée** : geste de Marc), `CONTRACT_VERSION = 1`. Tags
+- **Ce qui tourne** : le paquet est en `1.5.0` (`package.json`), taguée `v1.5.0` par Marc le 16/10/2026 sur `440a301` (PR #58), `CONTRACT_VERSION = 1`. Tags
   présents sur `origin` (mesuré par `git ls-remote --tags origin` les 14 et 15/10) : `v1.0.0`,
-  `v1.1.0`, `v1.3.0`, `v1.3.1`, `v1.4.0`. **Il n'existe pas de tag `v1.2.0`** : le contenu de
+  `v1.1.0`, `v1.3.0`, `v1.3.1`, `v1.4.0`, `v1.5.0`. **Il n'existe pas de tag `v1.2.0`** : le contenu de
   la 1.2.0 (`ContractTooNewError`, `/endpoint`) n'est livré qu'à partir de `v1.3.0`.
 - **Livré depuis la dernière mise à jour** (d'après `git log`) : `v1.4.0` taguée sur `0c3309d`
   (sous-chemin `/session`, #19/#21) ; gitleaks 8.28.0 → 8.30.1 (#23) ; README pointé sur
@@ -25,13 +25,13 @@
   du job), a un job `audit` (`npm audit --omit=dev`) et un script `npm run lint` (knip + dependency-cruiser,
   sans ESLint) lancé par le gate. Pas de `fumee` : le contrat n'est pas une app déployée. Toutes les actions
   sont épinglées par SHA. La ligne 7 (zod ≥ 4) est verte depuis #56 : `bloquant: true` peut être posé dans `ci.yml`.
-- **En cours** : tâche #56 (zod 4). Le tag `v1.5.0` reste à poser par Marc, puis les consommateurs se re-pinnent un par un (aucun n'utilise les schémas exportés, tous appellent `validateSummary` ; mesure dans la PR).
+- **Livré** : tâche #56 (zod 4), tag `v1.5.0` posé. Les consommateurs se re-pinnent un par un, une tâche par dépôt (aucun n'utilise les schémas exportés, tous appellent `validateSummary` ; mesure dans le commentaire de la PR #58) : voir « Re-pin pour la v1.5.0 » plus bas.
 - **Gel décidé par Marc le 14/10 : aucun nouveau travail sur les apps tant que le plan de
   réduction du temps des PR est en cours.**
 
 ## État du repo
 
-- `package.json` annonce **`1.5.0`** (v1.4.0 + passage à Zod 4, `dist/` commité — voir plus bas). Dernier tag existant : `v1.4.0`.
+- `package.json` annonce **`1.5.0`** (v1.4.0 + passage à Zod 4, `dist/` commité — voir plus bas). Dernier tag existant : `v1.5.0`.
   `CONTRACT_VERSION` reste **`1`** : les quatre ajouts de la v1.3 sont optionnels, donc
   additifs (règle d'évolution n°2 de `docs/claude/01-principes.md`).
 - Contrat complet dans `src/index.ts` ; endpoint partagé dans `src/endpoint.ts`.
@@ -49,7 +49,7 @@
 | `1.3.0` | `details` (vue détaillée), `primary` (le chiffre principal), `recommendation`, `expectedMaxAgeSec` (l'app déclare son propre rythme). Tous optionnels. | ✅ existe (tag léger, pointe `bd47d5f`) |
 | `1.3.1` | Contrat identique à `1.3.0`. `dist/` commité : sans lui, une CI en Node 24 + `--ignore-scripts` ne reçoit aucun `dist/`. | ✅ existe, pointe `625bd11` |
 | `1.4.0` | Nouveau sous-chemin `@mokarade/hub-contract/session` : `verifierSession`, lecture de la session partagée signée ES256 (chantier auth-asym). Additif : `/index` inchangé, `CONTRACT_VERSION` reste `1`. | ✅ existe (tag léger, pointe `0c3309d`) |
-| `1.5.0` | Passage de `zod` 3 à **4** (tâche #56). Format du fil inchangé, `CONTRACT_VERSION` reste `1`. Trois bords resserrés (secondes obligatoires dans les datetimes, `Infinity` refusé, espaces d'URL retirés au rendu) et un élargi (longueurs en points de code) : corpus de 562 charges, 520 verdicts et rendus identiques, 42 écarts tous listés dans `tests/contract.test.ts` et le README. Les schémas exportés sont maintenant des objets Zod 4. | ❌ **pas taguée** (geste de Marc, voir ci-dessous) |
+| `1.5.0` | Passage de `zod` 3 à **4** (tâche #56). Format du fil inchangé, `CONTRACT_VERSION` reste `1`. Trois bords resserrés (secondes obligatoires dans les datetimes, `Infinity` refusé, espaces d'URL retirés au rendu) et un élargi (longueurs en points de code) : corpus de 562 charges, 520 verdicts et rendus identiques, 42 écarts tous listés dans `tests/contract.test.ts` et le README. Les schémas exportés sont maintenant des objets Zod 4. | ✅ tag `v1.5.0` posé le 16/10/2026 (`440a301`) |
 
 ## La chaîne de CI, et le seul verrou de L2 qui n'a PAS été posé ici
 
@@ -161,6 +161,12 @@ JobAI, 2026-07-29. Toute nouvelle app consommatrice s'ajoute ici ET dans la list
 
 Un consommateur non re-pinné reste sur l'ancien tag : comportement voulu, aucune urgence tant
 que le contrat qu'il utilise est encore servi par les apps.
+
+### Re-pin pour la v1.5.0 (Zod 4) — une tâche par dépôt
+
+Tous les consommateurs sont concernés (la ligne 7 de la grille de conformité vise Zod 4), sans urgence technique : un dépôt non re-pinné reste sur son tag. Mesure d'impact faite sur une copie de chaque app avec le paquet 1.5.0 : typecheck 0 erreur, tests identiques avant/après. Une PR de tâche à la fois par dépôt.
+
+État au 16/10/2026 : **en v1.5.0** — Hubperso (#232, déployé) ; **PR en brouillon** — BatchChef (#243, attend la PR #242 et la tâche #236) ; **issue de re-pin ouverte, à prendre après la tâche en cours du dépôt** — DriveAI (#562), FinanceAI (#1196), JobAI (#145), MemoryAI (#165), CarAI (#289), app-template (#82). Source de vérité : ces issues.
 
 ### Re-pin pour la v1.4.0 (`/session`) — qui, et pas d'urgence
 
