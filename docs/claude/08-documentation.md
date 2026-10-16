@@ -7,6 +7,8 @@
 | `README.md` | Le contrat champ par champ. **C'est la doc des producteurs** — un tableau qui manque là se paie en apps qui publient à côté. |
 | `CLAUDE.md` | L'essentiel du dépôt, 60 lignes au plus ; le détail est dans `docs/claude/`. |
 | `docs/claude/` | Ancien contenu long de `CLAUDE.md`, un fichier par ancienne section (index : `CLAUDE.md`, « Pour aller plus loin »). |
+| `BACKLOG.md` | Un renvoi vers les issues du dépôt, où vit ce qui est décidé mais pas fait (20 lignes au plus). |
+| `docs/adr/` | Décisions d'architecture, `NNNN-slug.md`. |
 | `HANDOVER.md` | État des versions, des tags et des consommateurs. Procédure de release. |
 
 ⚠️ **Le README est la seule doc que lisent les apps consommatrices.** Le 20/08/2026, le bloc `usage`
