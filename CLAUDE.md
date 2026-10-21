@@ -32,4 +32,5 @@
 Ancien numéro de section de ce fichier → `docs/claude/` :
 - § 1 principes → `01-principes` · § 2 conventions → `02-conventions` · § 3 git → `03-workflow-git` · § 4 commandes → `04-commandes` · § 5 vérifications → `05-verifications`
 - § 8 documentation → `08-documentation` · § 9 leçons → `09-lecons` · § 10 style et compte-rendu → `10-style-compte-rendu` · § 11 release → `11-release` · en-tête → `00-preambule`
+- Graphe de code (hooks et MCP `graphify` posés, 0 jeton ; `scripts/graphe.sh query|affected|path|explain` avant de grepper) → `12-graphe-code`
 - Copie lisible de la convention de compte-rendu : `docs/COMPTE-RENDU.md` (non importée ; sa synchro reste vérifiée par la CI). Règles de forme : instructions du projet « Apps ».
