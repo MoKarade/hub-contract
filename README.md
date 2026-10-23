@@ -114,7 +114,7 @@ const summary = validateSummary(await response.json());
 
 ## Le contrat
 
-Version courante : `CONTRACT_VERSION = 1`, paquet **`1.5.0`**.
+Version courante : `CONTRACT_VERSION = 1`, paquet **`1.6.0`**.
 
 Le champ `contractVersion` du JSON n'est **pas** un littéral strict — il l'a été jusqu'à la
 v1.1. C'est un entier `>= 1`, sondé **avant** la structure : un consommateur qui reçoit une
@@ -297,6 +297,65 @@ cumuls des autres apps.
 `quota` avec son plafond pour `limit`. Rien n'est perdu — la distance au plafond est même plus
 informative qu'un montant nu — et le hub peut afficher un seul montant honnête. C'est ce que
 fait DriveAI.
+
+### `HubAssistantAction` et `HubActionCatalog` (v1.6, optionnel) — ce qu'une app permet de FAIRE
+
+Le résumé dit ce qui est ; le **catalogue** dit ce que l'assistant peut demander à l'app de
+faire, avec le niveau de risque de chaque geste. Document à part (`validateActionCatalog`),
+**pas** un champ de `HubSummary` : les summaries existants ne changent pas d'un octet. Comment
+l'app sert son catalogue n'est pas décidé ici (tâches des apps). Ne pas confondre avec
+`HubAction`, le bouton-lien du widget.
+
+```ts
+import { validateActionCatalog } from "@mokarade/hub-contract";
+
+const catalogue = validateActionCatalog({
+  contractVersion: 1,
+  app: { id: "batchchef" },
+  actions: [
+    { id: "cocher-article", label: "Cocher un article", level: "N1",
+      preview: false, undoable: true,
+      input: [{ name: "articleId", label: "Article", type: "text", required: true }] },
+  ],
+});
+```
+
+**`HubActionCatalog`**
+
+| Champ | Type | Règles |
+|---|---|---|
+| `contractVersion` | `number` | Entier `>= 1`, sondé avant la structure : plus récent que le build lève `ContractTooNewError`. |
+| `app.id` | `string` | Kebab-case, le même que `HubSummary.app.id`. |
+| `actions` | tableau | 50 au plus, `id` uniques. Un tableau vide est valide (aucune action exposée). |
+
+**`HubAssistantAction`**
+
+| Champ | Type | Règles |
+|---|---|---|
+| `id` | `string` | Kebab-case (`lire-solde`), 1 à 60 caractères, unique dans le catalogue. |
+| `label` | `string` | 1 à 40 caractères. |
+| `description` | `string?` | 1 à 140 caractères : ce que fait l'action. |
+| `level` | enum | `N0` \| `N1` \| `N2` \| `N3` : voir le tableau des niveaux. |
+| `preview` | `boolean` | L'app sait montrer ce qui changera, sans rien écrire. Obligatoire, sans défaut. |
+| `undoable` | `boolean` | Un retour arrière existe. Obligatoire, sans défaut. |
+| `input` | tableau | 8 paramètres au plus, noms uniques. `[]` = aucun paramètre. Obligatoire. |
+
+**Les niveaux contraignent `preview` et `undoable`** (union discriminée : une combinaison
+contradictoire est refusée, pas laissée au hub à deviner) :
+
+| Niveau | Sens | `preview` | `undoable` |
+|---|---|---|---|
+| `N0` | Lecture. | `false` | `false` |
+| `N1` | Écriture réversible et locale. | libre | `true` |
+| `N2` | Sensible : aperçu puis confirmation. | `true` | libre |
+| `N3` | Physique ou irréversible. | libre | `false` |
+
+`N3` est décrit par le contrat ; qu'il ne soit **pas exécuté** pour l'instant (lecture seule)
+est une règle du hub (Hubperso, ADR 0006), pas de ce dépôt.
+
+**Paramètre d'entrée (`input[]`)** : `name` (camelCase, 1 à 40 caractères), `label` (1 à 40),
+`type` (`text` \| `number` \| `boolean` \| `date`), `required` (booléen explicite). Il décrit
+ce qu'on peut demander ; l'app qui exécute reste seule juge de la valeur.
 
 ### Précisions de validation
 
