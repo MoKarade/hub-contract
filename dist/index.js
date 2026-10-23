@@ -23,8 +23,11 @@ __export(index_exports, {
   CONTRACT_VERSION: () => CONTRACT_VERSION,
   ContractTooNewError: () => ContractTooNewError,
   HUB_TOKEN_HEADER: () => HUB_TOKEN_HEADER,
+  HubActionCatalogSchema: () => HubActionCatalogSchema,
+  HubActionInputSchema: () => HubActionInputSchema,
   HubActionSchema: () => HubActionSchema,
   HubAlertSchema: () => HubAlertSchema,
+  HubAssistantActionSchema: () => HubAssistantActionSchema,
   HubDetailItemSchema: () => HubDetailItemSchema,
   HubDetailSectionSchema: () => HubDetailSectionSchema,
   HubMetricSchema: () => HubMetricSchema,
@@ -33,6 +36,7 @@ __export(index_exports, {
   HubSummarySchema: () => HubSummarySchema,
   HubUsageSchema: () => HubUsageSchema,
   buildingSummary: () => buildingSummary,
+  validateActionCatalog: () => validateActionCatalog,
   validateSummary: () => validateSummary
 });
 module.exports = __toCommonJS(index_exports);
@@ -205,6 +209,59 @@ var HubSummarySchema = import_zod.z.object({
   /** Coûts & quotas de l'app (additif v1.1 ; optionnel — les consumers v1.0 l'ignorent). */
   usage: HubUsageSchema.optional()
 });
+var HubActionInputSchema = import_zod.z.object({
+  /** Nom du paramètre tel que l'app le reçoit, camelCase (ex: "quantite"). */
+  name: import_zod.z.string().min(1).max(40).regex(/^[a-z][A-Za-z0-9]*$/),
+  /** Libellé lisible, pour que l'assistant puisse demander la valeur à Marc. */
+  label: import_zod.z.string().min(1).max(40),
+  type: import_zod.z.enum(["text", "number", "boolean", "date"]),
+  /** Explicite et sans défaut : un « facultatif par oubli » ne se distingue pas d'un oubli. */
+  required: import_zod.z.boolean()
+});
+var ActionCommuneSchema = import_zod.z.object({
+  /** Identifiant stable de l'action, kebab-case, unique dans le catalogue de l'app. */
+  id: import_zod.z.string().min(1).max(60).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+  label: import_zod.z.string().min(1).max(40),
+  /** Ce que fait l'action, en une phrase. Optionnel : le libellé suffit souvent. */
+  description: import_zod.z.string().min(1).max(140).optional(),
+  /** Les paramètres demandés. Un tableau vide dit « aucun », sans ambiguïté avec « oublié ». */
+  input: import_zod.z.array(HubActionInputSchema).max(8).refine((champs) => new Set(champs.map((c) => c.name)).size === champs.length, {
+    message: "deux param\xE8tres d'une m\xEAme action ne peuvent pas porter le m\xEAme nom"
+  })
+});
+var HubAssistantActionSchema = import_zod.z.discriminatedUnion("level", [
+  ActionCommuneSchema.extend({
+    level: import_zod.z.literal("N0"),
+    preview: import_zod.z.literal(false, { error: "une lecture (N0) n'a rien \xE0 pr\xE9visualiser" }),
+    undoable: import_zod.z.literal(false, { error: "une lecture (N0) n'a rien \xE0 annuler" })
+  }),
+  ActionCommuneSchema.extend({
+    level: import_zod.z.literal("N1"),
+    preview: import_zod.z.boolean(),
+    undoable: import_zod.z.literal(true, { error: "une action N1 doit pouvoir \xEAtre annul\xE9e" })
+  }),
+  ActionCommuneSchema.extend({
+    level: import_zod.z.literal("N2"),
+    preview: import_zod.z.literal(true, { error: "une action N2 doit offrir un aper\xE7u avant confirmation" }),
+    undoable: import_zod.z.boolean()
+  }),
+  ActionCommuneSchema.extend({
+    level: import_zod.z.literal("N3"),
+    preview: import_zod.z.boolean(),
+    undoable: import_zod.z.literal(false, { error: "une action N3 est irr\xE9versible : undoable doit \xEAtre false" })
+  })
+]);
+var HubActionCatalogSchema = import_zod.z.object({
+  /** Même sémantique que dans `HubSummary` : version du format de fil, sondée avant la structure. */
+  contractVersion: import_zod.z.number().int().min(1),
+  app: import_zod.z.object({
+    /** Identifiant de l'app, le même que `HubSummary.app.id`. */
+    id: import_zod.z.string().regex(/^[a-z0-9-]+$/)
+  }),
+  actions: import_zod.z.array(HubAssistantActionSchema).max(50).refine((actions) => new Set(actions.map((a) => a.id)).size === actions.length, {
+    message: "deux actions d'un m\xEAme catalogue ne peuvent pas porter le m\xEAme identifiant"
+  })
+});
 var ContractTooNewError = class extends Error {
   /** Version annoncée par l'app. */
   published;
@@ -245,10 +302,22 @@ function validateSummary(data) {
   if (result.success) {
     return verifierCoherences(result.data);
   }
-  const issues = result.error.issues.map(formatIssue).join(" | ");
-  throw new Error(
-    `HubSummary invalide (${result.error.issues.length} issue${result.error.issues.length > 1 ? "s" : ""}) \u2014 ${issues}`
-  );
+  throw erreurHorsContrat("HubSummary", result.error.issues);
+}
+function validateActionCatalog(data) {
+  const probe = VersionProbeSchema.safeParse(data);
+  if (probe.success && probe.data.contractVersion > CONTRACT_VERSION) {
+    throw new ContractTooNewError(probe.data.contractVersion, CONTRACT_VERSION);
+  }
+  const result = HubActionCatalogSchema.safeParse(data);
+  if (result.success) {
+    return result.data;
+  }
+  throw erreurHorsContrat("HubActionCatalog", result.error.issues);
+}
+function erreurHorsContrat(nom, issues) {
+  const detail = issues.map(formatIssue).join(" | ");
+  return new Error(`${nom} invalide (${issues.length} issue${issues.length > 1 ? "s" : ""}) \u2014 ${detail}`);
 }
 function buildingSummary(app, opts) {
   return validateSummary({
@@ -271,8 +340,11 @@ function buildingSummary(app, opts) {
   CONTRACT_VERSION,
   ContractTooNewError,
   HUB_TOKEN_HEADER,
+  HubActionCatalogSchema,
+  HubActionInputSchema,
   HubActionSchema,
   HubAlertSchema,
+  HubAssistantActionSchema,
   HubDetailItemSchema,
   HubDetailSectionSchema,
   HubMetricSchema,
@@ -281,6 +353,7 @@ function buildingSummary(app, opts) {
   HubSummarySchema,
   HubUsageSchema,
   buildingSummary,
+  validateActionCatalog,
   validateSummary
 });
 //# sourceMappingURL=index.js.map

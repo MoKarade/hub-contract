@@ -277,6 +277,111 @@ export const HubSummarySchema = z.object({
   usage: HubUsageSchema.optional(),
 });
 
+/**
+ * Un paramètre d'entrée d'une action de l'assistant (additif v1.6, optionnel).
+ *
+ * Il décrit, il ne valide pas la valeur : l'app qui exécute reste la seule à savoir si
+ * « 12 » est une quantité acceptable. Le contrat dit seulement ce qu'on peut demander.
+ */
+export const HubActionInputSchema = z.object({
+  /** Nom du paramètre tel que l'app le reçoit, camelCase (ex: "quantite"). */
+  name: z
+    .string()
+    .min(1)
+    .max(40)
+    .regex(/^[a-z][A-Za-z0-9]*$/),
+  /** Libellé lisible, pour que l'assistant puisse demander la valeur à Marc. */
+  label: z.string().min(1).max(40),
+  type: z.enum(["text", "number", "boolean", "date"]),
+  /** Explicite et sans défaut : un « facultatif par oubli » ne se distingue pas d'un oubli. */
+  required: z.boolean(),
+});
+
+/** Les champs communs à toutes les actions, quel que soit leur niveau. */
+const ActionCommuneSchema = z.object({
+  /** Identifiant stable de l'action, kebab-case, unique dans le catalogue de l'app. */
+  id: z
+    .string()
+    .min(1)
+    .max(60)
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+  label: z.string().min(1).max(40),
+  /** Ce que fait l'action, en une phrase. Optionnel : le libellé suffit souvent. */
+  description: z.string().min(1).max(140).optional(),
+  /** Les paramètres demandés. Un tableau vide dit « aucun », sans ambiguïté avec « oublié ». */
+  input: z
+    .array(HubActionInputSchema)
+    .max(8)
+    .refine((champs) => new Set(champs.map((c) => c.name)).size === champs.length, {
+      message: "deux paramètres d'une même action ne peuvent pas porter le même nom",
+    }),
+});
+
+/**
+ * Une action qu'une app permet de FAIRE, vue par l'assistant (additif v1.6, optionnel).
+ *
+ * ── LE NIVEAU DÉCIDE CE QUI EST PERMIS DE DIRE ───────────────────────────────────────
+ *
+ * Le niveau de risque n'est pas une étiquette à côté de l'action : il contraint les deux
+ * autres déclarations (`preview`, `undoable`). C'est une union discriminée sur `level`, et
+ * non un `refine`, pour qu'aucune combinaison contradictoire ne soit REPRÉSENTABLE — une
+ * action « réversible » qui se déclare non annulable, ou « sensible » sans aperçu, est
+ * refusée à la validation, pas laissée au hub à deviner.
+ *
+ * - `N0` — lecture. Rien à prévisualiser, rien à annuler.
+ * - `N1` — écriture réversible et locale. `undoable: true` obligatoire : sans retour
+ *   arrière possible, ce n'est pas un N1.
+ * - `N2` — sensible. `preview: true` obligatoire : l'aperçu précède la confirmation.
+ * - `N3` — physique ou irréversible. `undoable: false` obligatoire. Le contrat la DÉCRIT ;
+ *   que le hub ne l'exécute pas encore (lecture seule) est une règle du hub, pas de ce
+ *   dépôt, qui ne contient aucune logique d'exécution.
+ */
+export const HubAssistantActionSchema = z.discriminatedUnion("level", [
+  ActionCommuneSchema.extend({
+    level: z.literal("N0"),
+    preview: z.literal(false, { error: "une lecture (N0) n'a rien à prévisualiser" }),
+    undoable: z.literal(false, { error: "une lecture (N0) n'a rien à annuler" }),
+  }),
+  ActionCommuneSchema.extend({
+    level: z.literal("N1"),
+    preview: z.boolean(),
+    undoable: z.literal(true, { error: "une action N1 doit pouvoir être annulée" }),
+  }),
+  ActionCommuneSchema.extend({
+    level: z.literal("N2"),
+    preview: z.literal(true, { error: "une action N2 doit offrir un aperçu avant confirmation" }),
+    undoable: z.boolean(),
+  }),
+  ActionCommuneSchema.extend({
+    level: z.literal("N3"),
+    preview: z.boolean(),
+    undoable: z.literal(false, { error: "une action N3 est irréversible : undoable doit être false" }),
+  }),
+]);
+
+/**
+ * Le catalogue des actions d'UNE app (additif v1.6, optionnel). C'est un document à part,
+ * pas un champ de `HubSummary` : le résumé dit ce qui est, le catalogue dit ce qu'on peut
+ * faire, et ils n'ont ni le même rythme ni le même lecteur. Comment il est servi est décidé
+ * par les tâches des apps, pas par ce dépôt.
+ *
+ * Un catalogue vide est valide : l'app n'expose aucune action, ce qui est honnête.
+ */
+export const HubActionCatalogSchema = z.object({
+  /** Même sémantique que dans `HubSummary` : version du format de fil, sondée avant la structure. */
+  contractVersion: z.number().int().min(1),
+  app: z.object({
+    /** Identifiant de l'app, le même que `HubSummary.app.id`. */
+    id: z.string().regex(/^[a-z0-9-]+$/),
+  }),
+  actions: z
+    .array(HubAssistantActionSchema)
+    .max(50)
+    .refine((actions) => new Set(actions.map((a) => a.id)).size === actions.length, {
+      message: "deux actions d'un même catalogue ne peuvent pas porter le même identifiant",
+    }),
+});
+
 export type HubMetric = z.infer<typeof HubMetricSchema>;
 export type HubAlert = z.infer<typeof HubAlertSchema>;
 export type HubAction = z.infer<typeof HubActionSchema>;
@@ -286,6 +391,9 @@ export type HubDetailItem = z.infer<typeof HubDetailItemSchema>;
 export type HubDetailSection = z.infer<typeof HubDetailSectionSchema>;
 export type HubRecommendation = z.infer<typeof HubRecommendationSchema>;
 export type HubSummary = z.infer<typeof HubSummarySchema>;
+export type HubActionInput = z.infer<typeof HubActionInputSchema>;
+export type HubAssistantAction = z.infer<typeof HubAssistantActionSchema>;
+export type HubActionCatalog = z.infer<typeof HubActionCatalogSchema>;
 
 /**
  * Le summary est syntaxiquement lisible mais annonce une version du contrat que CE build
@@ -389,10 +497,33 @@ export function validateSummary(data: unknown): HubSummary {
   if (result.success) {
     return verifierCoherences(result.data);
   }
-  const issues = result.error.issues.map(formatIssue).join(" | ");
-  throw new Error(
-    `HubSummary invalide (${result.error.issues.length} issue${result.error.issues.length > 1 ? "s" : ""}) — ${issues}`,
-  );
+  throw erreurHorsContrat("HubSummary", result.error.issues);
+}
+
+/**
+ * Valide un catalogue d'actions inconnu contre le contrat — même discipline que
+ * `validateSummary` : « trop récent » (`ContractTooNewError`, le consommateur est en retard)
+ * se distingue de « hors contrat » (`Error`, une issue Zod par ligne).
+ *
+ * Rend le catalogue typé, qui ne contient QUE ce que le contrat connaît : une clé inconnue
+ * est strippée, comme partout ici.
+ */
+export function validateActionCatalog(data: unknown): HubActionCatalog {
+  const probe = VersionProbeSchema.safeParse(data);
+  if (probe.success && probe.data.contractVersion > CONTRACT_VERSION) {
+    throw new ContractTooNewError(probe.data.contractVersion, CONTRACT_VERSION);
+  }
+
+  const result = HubActionCatalogSchema.safeParse(data);
+  if (result.success) {
+    return result.data;
+  }
+  throw erreurHorsContrat("HubActionCatalog", result.error.issues);
+}
+
+function erreurHorsContrat(nom: string, issues: z.core.$ZodIssue[]): Error {
+  const detail = issues.map(formatIssue).join(" | ");
+  return new Error(`${nom} invalide (${issues.length} issue${issues.length > 1 ? "s" : ""}) — ${detail}`);
 }
 
 /**

@@ -168,6 +168,59 @@ var HubSummarySchema = z.object({
   /** Coûts & quotas de l'app (additif v1.1 ; optionnel — les consumers v1.0 l'ignorent). */
   usage: HubUsageSchema.optional()
 });
+var HubActionInputSchema = z.object({
+  /** Nom du paramètre tel que l'app le reçoit, camelCase (ex: "quantite"). */
+  name: z.string().min(1).max(40).regex(/^[a-z][A-Za-z0-9]*$/),
+  /** Libellé lisible, pour que l'assistant puisse demander la valeur à Marc. */
+  label: z.string().min(1).max(40),
+  type: z.enum(["text", "number", "boolean", "date"]),
+  /** Explicite et sans défaut : un « facultatif par oubli » ne se distingue pas d'un oubli. */
+  required: z.boolean()
+});
+var ActionCommuneSchema = z.object({
+  /** Identifiant stable de l'action, kebab-case, unique dans le catalogue de l'app. */
+  id: z.string().min(1).max(60).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+  label: z.string().min(1).max(40),
+  /** Ce que fait l'action, en une phrase. Optionnel : le libellé suffit souvent. */
+  description: z.string().min(1).max(140).optional(),
+  /** Les paramètres demandés. Un tableau vide dit « aucun », sans ambiguïté avec « oublié ». */
+  input: z.array(HubActionInputSchema).max(8).refine((champs) => new Set(champs.map((c) => c.name)).size === champs.length, {
+    message: "deux param\xE8tres d'une m\xEAme action ne peuvent pas porter le m\xEAme nom"
+  })
+});
+var HubAssistantActionSchema = z.discriminatedUnion("level", [
+  ActionCommuneSchema.extend({
+    level: z.literal("N0"),
+    preview: z.literal(false, { error: "une lecture (N0) n'a rien \xE0 pr\xE9visualiser" }),
+    undoable: z.literal(false, { error: "une lecture (N0) n'a rien \xE0 annuler" })
+  }),
+  ActionCommuneSchema.extend({
+    level: z.literal("N1"),
+    preview: z.boolean(),
+    undoable: z.literal(true, { error: "une action N1 doit pouvoir \xEAtre annul\xE9e" })
+  }),
+  ActionCommuneSchema.extend({
+    level: z.literal("N2"),
+    preview: z.literal(true, { error: "une action N2 doit offrir un aper\xE7u avant confirmation" }),
+    undoable: z.boolean()
+  }),
+  ActionCommuneSchema.extend({
+    level: z.literal("N3"),
+    preview: z.boolean(),
+    undoable: z.literal(false, { error: "une action N3 est irr\xE9versible : undoable doit \xEAtre false" })
+  })
+]);
+var HubActionCatalogSchema = z.object({
+  /** Même sémantique que dans `HubSummary` : version du format de fil, sondée avant la structure. */
+  contractVersion: z.number().int().min(1),
+  app: z.object({
+    /** Identifiant de l'app, le même que `HubSummary.app.id`. */
+    id: z.string().regex(/^[a-z0-9-]+$/)
+  }),
+  actions: z.array(HubAssistantActionSchema).max(50).refine((actions) => new Set(actions.map((a) => a.id)).size === actions.length, {
+    message: "deux actions d'un m\xEAme catalogue ne peuvent pas porter le m\xEAme identifiant"
+  })
+});
 var ContractTooNewError = class extends Error {
   /** Version annoncée par l'app. */
   published;
@@ -208,10 +261,22 @@ function validateSummary(data) {
   if (result.success) {
     return verifierCoherences(result.data);
   }
-  const issues = result.error.issues.map(formatIssue).join(" | ");
-  throw new Error(
-    `HubSummary invalide (${result.error.issues.length} issue${result.error.issues.length > 1 ? "s" : ""}) \u2014 ${issues}`
-  );
+  throw erreurHorsContrat("HubSummary", result.error.issues);
+}
+function validateActionCatalog(data) {
+  const probe = VersionProbeSchema.safeParse(data);
+  if (probe.success && probe.data.contractVersion > CONTRACT_VERSION) {
+    throw new ContractTooNewError(probe.data.contractVersion, CONTRACT_VERSION);
+  }
+  const result = HubActionCatalogSchema.safeParse(data);
+  if (result.success) {
+    return result.data;
+  }
+  throw erreurHorsContrat("HubActionCatalog", result.error.issues);
+}
+function erreurHorsContrat(nom, issues) {
+  const detail = issues.map(formatIssue).join(" | ");
+  return new Error(`${nom} invalide (${issues.length} issue${issues.length > 1 ? "s" : ""}) \u2014 ${detail}`);
 }
 function buildingSummary(app, opts) {
   return validateSummary({
@@ -242,8 +307,12 @@ export {
   HubUsageSchema,
   HubRecommendationSchema,
   HubSummarySchema,
+  HubActionInputSchema,
+  HubAssistantActionSchema,
+  HubActionCatalogSchema,
   ContractTooNewError,
   validateSummary,
+  validateActionCatalog,
   buildingSummary
 };
-//# sourceMappingURL=chunk-G75DY5AV.mjs.map
+//# sourceMappingURL=chunk-H5QKO4SN.mjs.map

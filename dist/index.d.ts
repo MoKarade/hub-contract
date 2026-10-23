@@ -281,6 +281,202 @@ declare const HubSummarySchema: z.ZodObject<{
         }, z.core.$strip>>>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
+/**
+ * Un paramètre d'entrée d'une action de l'assistant (additif v1.6, optionnel).
+ *
+ * Il décrit, il ne valide pas la valeur : l'app qui exécute reste la seule à savoir si
+ * « 12 » est une quantité acceptable. Le contrat dit seulement ce qu'on peut demander.
+ */
+declare const HubActionInputSchema: z.ZodObject<{
+    name: z.ZodString;
+    label: z.ZodString;
+    type: z.ZodEnum<{
+        number: "number";
+        boolean: "boolean";
+        date: "date";
+        text: "text";
+    }>;
+    required: z.ZodBoolean;
+}, z.core.$strip>;
+/**
+ * Une action qu'une app permet de FAIRE, vue par l'assistant (additif v1.6, optionnel).
+ *
+ * ── LE NIVEAU DÉCIDE CE QUI EST PERMIS DE DIRE ───────────────────────────────────────
+ *
+ * Le niveau de risque n'est pas une étiquette à côté de l'action : il contraint les deux
+ * autres déclarations (`preview`, `undoable`). C'est une union discriminée sur `level`, et
+ * non un `refine`, pour qu'aucune combinaison contradictoire ne soit REPRÉSENTABLE — une
+ * action « réversible » qui se déclare non annulable, ou « sensible » sans aperçu, est
+ * refusée à la validation, pas laissée au hub à deviner.
+ *
+ * - `N0` — lecture. Rien à prévisualiser, rien à annuler.
+ * - `N1` — écriture réversible et locale. `undoable: true` obligatoire : sans retour
+ *   arrière possible, ce n'est pas un N1.
+ * - `N2` — sensible. `preview: true` obligatoire : l'aperçu précède la confirmation.
+ * - `N3` — physique ou irréversible. `undoable: false` obligatoire. Le contrat la DÉCRIT ;
+ *   que le hub ne l'exécute pas encore (lecture seule) est une règle du hub, pas de ce
+ *   dépôt, qui ne contient aucune logique d'exécution.
+ */
+declare const HubAssistantActionSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    id: z.ZodString;
+    label: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    input: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        label: z.ZodString;
+        type: z.ZodEnum<{
+            number: "number";
+            boolean: "boolean";
+            date: "date";
+            text: "text";
+        }>;
+        required: z.ZodBoolean;
+    }, z.core.$strip>>;
+    level: z.ZodLiteral<"N0">;
+    preview: z.ZodLiteral<false>;
+    undoable: z.ZodLiteral<false>;
+}, z.core.$strip>, z.ZodObject<{
+    id: z.ZodString;
+    label: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    input: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        label: z.ZodString;
+        type: z.ZodEnum<{
+            number: "number";
+            boolean: "boolean";
+            date: "date";
+            text: "text";
+        }>;
+        required: z.ZodBoolean;
+    }, z.core.$strip>>;
+    level: z.ZodLiteral<"N1">;
+    preview: z.ZodBoolean;
+    undoable: z.ZodLiteral<true>;
+}, z.core.$strip>, z.ZodObject<{
+    id: z.ZodString;
+    label: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    input: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        label: z.ZodString;
+        type: z.ZodEnum<{
+            number: "number";
+            boolean: "boolean";
+            date: "date";
+            text: "text";
+        }>;
+        required: z.ZodBoolean;
+    }, z.core.$strip>>;
+    level: z.ZodLiteral<"N2">;
+    preview: z.ZodLiteral<true>;
+    undoable: z.ZodBoolean;
+}, z.core.$strip>, z.ZodObject<{
+    id: z.ZodString;
+    label: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    input: z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        label: z.ZodString;
+        type: z.ZodEnum<{
+            number: "number";
+            boolean: "boolean";
+            date: "date";
+            text: "text";
+        }>;
+        required: z.ZodBoolean;
+    }, z.core.$strip>>;
+    level: z.ZodLiteral<"N3">;
+    preview: z.ZodBoolean;
+    undoable: z.ZodLiteral<false>;
+}, z.core.$strip>], "level">;
+/**
+ * Le catalogue des actions d'UNE app (additif v1.6, optionnel). C'est un document à part,
+ * pas un champ de `HubSummary` : le résumé dit ce qui est, le catalogue dit ce qu'on peut
+ * faire, et ils n'ont ni le même rythme ni le même lecteur. Comment il est servi est décidé
+ * par les tâches des apps, pas par ce dépôt.
+ *
+ * Un catalogue vide est valide : l'app n'expose aucune action, ce qui est honnête.
+ */
+declare const HubActionCatalogSchema: z.ZodObject<{
+    contractVersion: z.ZodNumber;
+    app: z.ZodObject<{
+        id: z.ZodString;
+    }, z.core.$strip>;
+    actions: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+        id: z.ZodString;
+        label: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        input: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            label: z.ZodString;
+            type: z.ZodEnum<{
+                number: "number";
+                boolean: "boolean";
+                date: "date";
+                text: "text";
+            }>;
+            required: z.ZodBoolean;
+        }, z.core.$strip>>;
+        level: z.ZodLiteral<"N0">;
+        preview: z.ZodLiteral<false>;
+        undoable: z.ZodLiteral<false>;
+    }, z.core.$strip>, z.ZodObject<{
+        id: z.ZodString;
+        label: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        input: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            label: z.ZodString;
+            type: z.ZodEnum<{
+                number: "number";
+                boolean: "boolean";
+                date: "date";
+                text: "text";
+            }>;
+            required: z.ZodBoolean;
+        }, z.core.$strip>>;
+        level: z.ZodLiteral<"N1">;
+        preview: z.ZodBoolean;
+        undoable: z.ZodLiteral<true>;
+    }, z.core.$strip>, z.ZodObject<{
+        id: z.ZodString;
+        label: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        input: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            label: z.ZodString;
+            type: z.ZodEnum<{
+                number: "number";
+                boolean: "boolean";
+                date: "date";
+                text: "text";
+            }>;
+            required: z.ZodBoolean;
+        }, z.core.$strip>>;
+        level: z.ZodLiteral<"N2">;
+        preview: z.ZodLiteral<true>;
+        undoable: z.ZodBoolean;
+    }, z.core.$strip>, z.ZodObject<{
+        id: z.ZodString;
+        label: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+        input: z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            label: z.ZodString;
+            type: z.ZodEnum<{
+                number: "number";
+                boolean: "boolean";
+                date: "date";
+                text: "text";
+            }>;
+            required: z.ZodBoolean;
+        }, z.core.$strip>>;
+        level: z.ZodLiteral<"N3">;
+        preview: z.ZodBoolean;
+        undoable: z.ZodLiteral<false>;
+    }, z.core.$strip>], "level">>;
+}, z.core.$strip>;
 type HubMetric = z.infer<typeof HubMetricSchema>;
 type HubAlert = z.infer<typeof HubAlertSchema>;
 type HubAction = z.infer<typeof HubActionSchema>;
@@ -290,6 +486,9 @@ type HubDetailItem = z.infer<typeof HubDetailItemSchema>;
 type HubDetailSection = z.infer<typeof HubDetailSectionSchema>;
 type HubRecommendation = z.infer<typeof HubRecommendationSchema>;
 type HubSummary = z.infer<typeof HubSummarySchema>;
+type HubActionInput = z.infer<typeof HubActionInputSchema>;
+type HubAssistantAction = z.infer<typeof HubAssistantActionSchema>;
+type HubActionCatalog = z.infer<typeof HubActionCatalogSchema>;
 /**
  * Le summary est syntaxiquement lisible mais annonce une version du contrat que CE build
  * ne sait pas lire (`contractVersion > CONTRACT_VERSION`).
@@ -329,6 +528,15 @@ declare class ContractTooNewError extends Error {
  */
 declare function validateSummary(data: unknown): HubSummary;
 /**
+ * Valide un catalogue d'actions inconnu contre le contrat — même discipline que
+ * `validateSummary` : « trop récent » (`ContractTooNewError`, le consommateur est en retard)
+ * se distingue de « hors contrat » (`Error`, une issue Zod par ligne).
+ *
+ * Rend le catalogue typé, qui ne contient QUE ce que le contrat connaît : une clé inconnue
+ * est strippée, comme partout ici.
+ */
+declare function validateActionCatalog(data: unknown): HubActionCatalog;
+/**
  * Fabrique un summary minimal honnête pour une app encore en développement :
  * status "building", aucune métrique, une seule alerte info, aucune action.
  * Le résultat est validé contre le contrat avant d'être retourné.
@@ -337,4 +545,4 @@ declare function buildingSummary(app: HubSummary["app"], opts?: {
     alertLabel?: string;
 }): HubSummary;
 
-export { CONTRACT_VERSION, ContractTooNewError, HUB_TOKEN_HEADER, type HubAction, HubActionSchema, type HubAlert, HubAlertSchema, type HubDetailItem, HubDetailItemSchema, type HubDetailSection, HubDetailSectionSchema, type HubMetric, HubMetricSchema, type HubQuota, HubQuotaSchema, type HubRecommendation, HubRecommendationSchema, type HubSummary, HubSummarySchema, type HubUsage, HubUsageSchema, buildingSummary, validateSummary };
+export { CONTRACT_VERSION, ContractTooNewError, HUB_TOKEN_HEADER, type HubAction, type HubActionCatalog, HubActionCatalogSchema, type HubActionInput, HubActionInputSchema, HubActionSchema, type HubAlert, HubAlertSchema, type HubAssistantAction, HubAssistantActionSchema, type HubDetailItem, HubDetailItemSchema, type HubDetailSection, HubDetailSectionSchema, type HubMetric, HubMetricSchema, type HubQuota, HubQuotaSchema, type HubRecommendation, HubRecommendationSchema, type HubSummary, HubSummarySchema, type HubUsage, HubUsageSchema, buildingSummary, validateActionCatalog, validateSummary };
