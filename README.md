@@ -25,7 +25,7 @@ flowchart LR
 ## Installation
 
 ```bash
-npm install github:MoKarade/hub-contract#v1.5.0
+npm install github:MoKarade/hub-contract#v1.6.0
 ```
 
 Pas de publication npm : l'installation se fait directement depuis GitHub.
@@ -53,6 +53,7 @@ le plus discret de ce dépôt, et une instruction d'installation périmée suffi
 | `v1.3.1` | Même contrat que `v1.3.0`, `dist/` commité. | L'installation elle-même sous Node 24 + `--ignore-scripts` (module introuvable). |
 | `v1.4.0` | Sous-chemin `@mokarade/hub-contract/session` (`verifierSession`). Contrat `.` et `/endpoint` inchangés. | `verifierSession` seulement (l'import échoue franchement, rien n'est strippé). |
 | `v1.5.0` | Le contrat passe à Zod 4 (`zod ^4.6.7`). Format du fil et `CONTRACT_VERSION` inchangés. | Rien n'est retiré ; trois bords se resserrent (secondes obligatoires dans les datetimes, `Infinity` refusé, espaces d'URL retirés au rendu), voir « Précisions de validation ». |
+| `v1.6.0` | Catalogue d'actions de l'assistant : `HubAssistantActionSchema`, `HubActionCatalogSchema`, `validateActionCatalog` (voir `HubAssistantAction` plus bas). Format du fil des summaries et `CONTRACT_VERSION` inchangés. | Le catalogue seulement (l'import de `validateActionCatalog` échoue franchement, rien n'est strippé dans un summary). |
 
 Fonctionne en CommonJS (`require`), en ESM (`import`) et dans un projet Vite —
 l'exports map fournit les deux formats + les déclarations TypeScript.

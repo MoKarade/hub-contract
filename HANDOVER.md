@@ -2,9 +2,9 @@
 
 ## État au 15/10/2026
 
-- **Ce qui tourne** : le paquet est en `1.6.0` (`package.json`, tâche #78, catalogue d'actions de l'assistant) ; **le tag `v1.6.0` reste à poser par Marc** après la fusion. Dernier tag existant : `v1.5.0` (Marc, 16/10/2026, sur `440a301`, PR #58). `CONTRACT_VERSION = 1`. Tags
+- **Ce qui tourne** : le paquet est en `1.6.0` (`package.json`, tâche #78, catalogue d'actions de l'assistant) ; tag annoté `v1.6.0` posé le 26/10/2026 sur `df97e9f` (objet `fff9bf7`, par le PC de Marc, vérifié par `git ls-remote --tags`). Tag précédent : `v1.5.0` (16/10/2026, sur `440a301`, PR #58). `CONTRACT_VERSION = 1`. Tags
   présents sur `origin` (mesuré par `git ls-remote --tags origin` les 14 et 15/10) : `v1.0.0`,
-  `v1.1.0`, `v1.3.0`, `v1.3.1`, `v1.4.0`, `v1.5.0`. **Il n'existe pas de tag `v1.2.0`** : le contenu de
+  `v1.1.0`, `v1.3.0`, `v1.3.1`, `v1.4.0`, `v1.5.0`, `v1.6.0`. **Il n'existe pas de tag `v1.2.0`** : le contenu de
   la 1.2.0 (`ContractTooNewError`, `/endpoint`) n'est livré qu'à partir de `v1.3.0`.
 - **Livré depuis la dernière mise à jour** (d'après `git log`) : `v1.4.0` taguée sur `0c3309d`
   (sous-chemin `/session`, #19/#21) ; gitleaks 8.28.0 → 8.30.1 (#23) ; README pointé sur
@@ -31,7 +31,7 @@
 
 ## État du repo
 
-- `package.json` annonce **`1.6.0`** (v1.5.0 + catalogue d'actions, `dist/` commité — voir plus bas). Dernier tag existant : `v1.5.0` ; `v1.6.0` attend le geste de Marc.
+- `package.json` annonce **`1.6.0`** (v1.5.0 + catalogue d'actions, `dist/` commité — voir plus bas). Dernier tag existant : `v1.6.0`.
   `CONTRACT_VERSION` reste **`1`** : les quatre ajouts de la v1.3 sont optionnels, donc
   additifs (règle d'évolution n°2 de `docs/claude/01-principes.md`).
 - Contrat complet dans `src/index.ts` ; endpoint partagé dans `src/endpoint.ts`.
@@ -50,7 +50,7 @@
 | `1.3.1` | Contrat identique à `1.3.0`. `dist/` commité : sans lui, une CI en Node 24 + `--ignore-scripts` ne reçoit aucun `dist/`. | ✅ existe, pointe `625bd11` |
 | `1.4.0` | Nouveau sous-chemin `@mokarade/hub-contract/session` : `verifierSession`, lecture de la session partagée signée ES256 (chantier auth-asym). Additif : `/index` inchangé, `CONTRACT_VERSION` reste `1`. | ✅ existe (tag léger, pointe `0c3309d`) |
 | `1.5.0` | Passage de `zod` 3 à **4** (tâche #56). Format du fil inchangé, `CONTRACT_VERSION` reste `1`. Trois bords resserrés (secondes obligatoires dans les datetimes, `Infinity` refusé, espaces d'URL retirés au rendu) et un élargi (longueurs en points de code) : corpus de 562 charges, 520 verdicts et rendus identiques, 42 écarts tous listés dans `tests/contract.test.ts` et le README. Les schémas exportés sont maintenant des objets Zod 4. | ✅ tag `v1.5.0` posé le 16/10/2026 (`440a301`) |
-| `1.6.0` | Catalogue d'actions de l'assistant (tâche #78) : `HubAssistantActionSchema`, `HubActionCatalogSchema`, `validateActionCatalog`. Additif optionnel : `validateSummary` et le format du fil des summaries sont inchangés, `CONTRACT_VERSION` reste `1`. Quatre niveaux (`N0` à `N3`) qui contraignent `preview` et `undoable`. Aucune logique d'exécution : le hub exécute (Hubperso ADR 0006). | ⏳ **à poser par Marc** (une session ne peut pas pousser de tag) |
+| `1.6.0` | Catalogue d'actions de l'assistant (tâche #78) : `HubAssistantActionSchema`, `HubActionCatalogSchema`, `validateActionCatalog`. Additif optionnel : `validateSummary` et le format du fil des summaries sont inchangés, `CONTRACT_VERSION` reste `1`. Quatre niveaux (`N0` à `N3`) qui contraignent `preview` et `undoable`. Aucune logique d'exécution : le hub exécute (Hubperso ADR 0006). | ✅ tag `v1.6.0` posé le 26/10/2026 (`df97e9f`) |
 
 ## La chaîne de CI, et le seul verrou de L2 qui n'a PAS été posé ici
 
